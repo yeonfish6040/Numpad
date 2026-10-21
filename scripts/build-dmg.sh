@@ -38,7 +38,7 @@ hdiutil create -volname Numpad -srcfolder "$staging/volume" -format UDZO -ov "$i
 devices="$(hdiutil info -plist | /usr/bin/python3 -c '
 import os, plistlib, sys
 target = os.path.realpath(sys.argv[1])
-for item in plistlib.load(sys.stdin.buffer).get("images", []):
+for item in plistlib.loads(sys.stdin.buffer.read()).get("images", []):
     if os.path.realpath(item.get("image-path", "")) == target:
         for entity in item.get("system-entities", []):
             if entity.get("dev-entry"):
