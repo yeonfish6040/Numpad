@@ -16,6 +16,12 @@
 
 <kbd>오른쪽 ⌘</kbd> + <kbd>오른쪽 ⌥</kbd>를 눌렀다 놓고, 트랙패드를 탭하세요. 숫자와 연산자를 입력할 수 있습니다. 반투명 오버레이가 위치를 안내하고 햅틱이 입력을 알려줍니다.
 
+## 직접 보기
+
+[![숫자 입력과 손가락 보정을 보여주는 Numpad 시연](docs/images/demo.gif)](https://github.com/yeonfish6040/Numpad/releases/download/v0.0.4/Numpad-demo.mp4)
+
+[시연 영상 보기 ↗](https://github.com/yeonfish6040/Numpad/releases/download/v0.0.4/Numpad-demo.mp4) · Mac에서 직접 녹화한 36초 분량의 숫자 입력·손가락 보정 영상입니다.
+
 ## 주요 기능
 
 - **탭으로 입력:** 숫자, 소수점, 사칙연산, Return, Backspace. 짧게 탭하고 떼면 한 번 입력합니다.

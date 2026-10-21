@@ -29,6 +29,12 @@
 
 Press <kbd>Right ⌘</kbd> + <kbd>Right ⌥</kbd>, tap a number, and keep going. Numpad turns the touch surface you already have into a numeric keypad, with an overlay to guide you and haptics you can feel.
 
+## See it in action
+
+[![Numpad demo: typing numbers and adjusting the keypad layout](docs/images/demo.gif)](https://github.com/yeonfish6040/Numpad/releases/download/v0.0.4/Numpad-demo.mp4)
+
+[Watch the demo ↗](https://github.com/yeonfish6040/Numpad/releases/download/v0.0.4/Numpad-demo.mp4) · 36 seconds of typing and finger calibration, recorded on a Mac.
+
 ## A little more keyboard, without more hardware
 
 | | |
