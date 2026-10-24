@@ -30,7 +30,7 @@ cat > "$bundle/Contents/Info.plist" <<'PLIST'
     <key>CFBundleShortVersionString</key><string>0.0.4</string>
     <key>CFBundleVersion</key><string>6</string>
     <key>CFBundleDevelopmentRegion</key><string>en</string>
-    <key>CFBundleLocalizations</key><array><string>en</string><string>ko</string></array>
+    <key>CFBundleLocalizations</key><array><string>en</string><string>ko</string><string>ja</string></array>
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>LSMinimumSystemVersion</key><string>13.0</string>
     <key>LSUIElement</key><true/>

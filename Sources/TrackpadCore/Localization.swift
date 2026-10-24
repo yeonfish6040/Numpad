@@ -3,8 +3,15 @@ import Foundation
 public enum AppLanguage: String, CaseIterable, Sendable {
     case english = "en"
     case korean = "ko"
+    case japanese = "ja"
 
-    public var name: String { self == .english ? "English" : "한국어" }
+    public var name: String {
+        switch self {
+        case .english: return "English"
+        case .korean: return "한국어"
+        case .japanese: return "日本語"
+        }
+    }
 
     /// An explicit English default, independent of the system's language order.
     public static func load(from defaults: UserDefaults = .standard) -> AppLanguage {

@@ -1,6 +1,7 @@
 /* Numpad interface strings. English is the default language. */
 "%d-finger calibration applied · Position, rotation, and scale" = "%d-finger calibration applied · Position, rotation, and scale";
 "A stronger haptic marks the small center region." = "A stronger haptic marks the small center region.";
+"Activation Shortcut" = "Activation Shortcut";
 "Allow Accessibility Access…" = "Allow Accessibility Access…";
 "Allow Accessibility access, then turn the keypad on again." = "Allow Accessibility access, then turn the keypad on again.";
 "Apply Calibration" = "Apply Calibration";
@@ -46,11 +47,13 @@
 "Preview Overlay" = "Preview Overlay";
 "Quit Numpad" = "Quit Numpad";
 "Reset Calibration" = "Reset Calibration";
+"Reset to Default (Right ⌘ + Right ⌥)" = "Reset to Default (Right ⌘ + Right ⌥)";
 "Reset to Bottom Center" = "Reset to Bottom Center";
 "Right" = "Right";
 "Right ⌘ + Right ⌥ to toggle · Esc to exit" = "Right ⌘ + Right ⌥ to toggle · Esc to exit";
 "Saved calibration is ready." = "Saved calibration is ready.";
 "Settings…" = "Settings…";
+"Shortcut" = "Shortcut";
 "The keypad is paused while Secure Input is active." = "The keypad is paused while Secure Input is active.";
 "The latest calibration applies to the entire layout and is saved separately for each operator position. Turn calibration off to return to the default layout." = "The latest calibration applies to the entire layout and is saved separately for each operator position. Turn calibration off to return to the default layout.";
 "The required trackpad API is unavailable on this version of macOS." = "The required trackpad API is unavailable on this version of macOS.";
@@ -70,10 +73,12 @@
 "Accessibility" = "Accessibility";
 "Allow Accessibility access" = "Allow Accessibility access";
 "Back" = "Back";
+"Choose a keyboard shortcut to toggle the keypad on and off." = "Choose a keyboard shortcut to toggle the keypad on and off.";
 "Choose a side for ⌫ ÷ × − + ↵. You can change it in Settings anytime." = "Choose a side for ⌫ ÷ × − + ↵. You can change it in Settings anytime.";
 "Click Open System Settings" = "Click Open System Settings";
 "Continue" = "Continue";
 "Enable Numpad in the list" = "Enable Numpad in the list";
+"Current shortcut" = "Current shortcut";
 "Get Started" = "Get Started";
 "Getting Started…" = "Getting Started…";
 "Got it! You can now turn on the keypad in any app." = "Got it! You can now turn on the keypad in any app.";

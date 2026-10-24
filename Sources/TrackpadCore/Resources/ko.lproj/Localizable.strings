@@ -1,6 +1,7 @@
 /* Numpad interface strings. English is the default language. */
 "%d-finger calibration applied · Position, rotation, and scale" = "%d손가락 보정 적용됨 · 회전·이동·균일 크기 반영";
 "A stronger haptic marks the small center region." = "작은 중심 영역을 지날 때 강한 햅틱을 줍니다.";
+"Activation Shortcut" = "활성화 단축키";
 "Allow Accessibility Access…" = "손쉬운 사용 권한 허용…";
 "Allow Accessibility access, then turn the keypad on again." = "손쉬운 사용 권한을 허용한 뒤 다시 켜 주세요.";
 "Apply Calibration" = "보정 시점";
@@ -46,11 +47,13 @@
 "Preview Overlay" = "오버레이 미리 보기";
 "Quit Numpad" = "종료";
 "Reset Calibration" = "보정 초기화";
+"Reset to Default (Right ⌘ + Right ⌥)" = "기본값으로 초기화 (오른쪽 ⌘ + 오른쪽 ⌥)";
 "Reset to Bottom Center" = "하단 중앙으로 초기화";
 "Right" = "오른쪽";
 "Right ⌘ + Right ⌥ to toggle · Esc to exit" = "오른쪽 ⌘ + 오른쪽 ⌥로 켜기·끄기 · Esc로 해제";
 "Saved calibration is ready." = "저장된 보정이 준비되었습니다.";
 "Settings…" = "설정…";
+"Shortcut" = "단축키";
 "The keypad is paused while Secure Input is active." = "보안 입력 중에는 숫자판이 일시 해제됩니다.";
 "The latest calibration applies to the entire layout and is saved separately for each operator position. Turn calibration off to return to the default layout." = "마지막 보정이 전체 배치에 적용됩니다. 조작키 방향별로 저장하며, 기능을 끄면 기본 배치로 돌아갑니다.";
 "The required trackpad API is unavailable on this version of macOS." = "이 macOS 버전에서 필요한 트랙패드 API를 찾을 수 없습니다.";
@@ -70,10 +73,12 @@
 "Accessibility" = "손쉬운 사용";
 "Allow Accessibility access" = "손쉬운 사용 허용";
 "Back" = "뒤로";
+"Choose a keyboard shortcut to toggle the keypad on and off." = "숫자판을 켜고 끌 키보드 단축키를 선택하세요.";
 "Choose a side for ⌫ ÷ × − + ↵. You can change it in Settings anytime." = "⌫ ÷ × − + ↵ 키를 둘 위치를 고르세요. 설정에서 언제든 바꿀 수 있어요.";
 "Click Open System Settings" = "시스템 설정 열기를 누르세요";
 "Continue" = "계속";
 "Enable Numpad in the list" = "목록에서 Numpad를 켜세요";
+"Current shortcut" = "현재 단축키";
 "Get Started" = "시작하기";
 "Getting Started…" = "시작 가이드…";
 "Got it! You can now turn on the keypad in any app." = "완벽해요! 이제 어느 앱에서든 숫자판을 켤 수 있어요.";
