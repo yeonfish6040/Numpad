@@ -121,3 +121,9 @@ open dist/Numpad.app
 Built with Swift, AppKit, and SwiftUI, with no external package dependencies. The [development guide](docs/DEVELOPMENT.md) covers the codebase, localization, diagnostics, and signed DMG builds.
 
 Found a bug or have an idea? [Open an issue](https://github.com/yeonfish6040/Numpad/issues) with your Mac model, macOS version, and steps to reproduce it. Translation improvements are welcome too.
+
+## License
+
+Numpad is source-available under the [Numpad Noncommercial Share-Alike License 1.0](LICENSE), a custom license. Noncommercial use, modification, redistribution, and pull requests are welcome. Commercial use requires separate written permission. If you redistribute the app or a modified version, you must provide the complete corresponding source code under the same license, retain notices, and identify your changes.
+
+Because commercial use is restricted, this is not an OSI-approved open-source license. See [LICENSE](LICENSE) for the full terms.

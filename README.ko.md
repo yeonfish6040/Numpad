@@ -82,3 +82,9 @@ open dist/Numpad.app
 Swift, AppKit, SwiftUI로 작성했으며 외부 패키지 의존성이 없습니다. 자세한 구조, 번역 추가, 진단 명령, 서명·공증 방법은 [개발 가이드](docs/DEVELOPMENT.md)에 정리했습니다.
 
 문제나 제안은 [이슈](https://github.com/yeonfish6040/Numpad/issues)로 남겨주세요. Mac 모델, macOS 버전, 재현 단계를 함께 적어주시면 도움이 됩니다.
+
+## 라이선스
+
+Numpad는 자체 작성한 [Numpad Noncommercial Share-Alike License 1.0](LICENSE)에 따라 소스를 공개합니다. 비상업적 사용·수정·재배포와 PR을 허용하며, 상업적 이용에는 별도의 서면 허가가 필요합니다. 앱이나 수정본을 재배포할 때는 빌드에 필요한 파일을 포함한 전체 소스를 동일한 라이선스로 제공하고, 저작권 고지를 유지하며, 변경 사항을 표시해야 합니다.
+
+상업적 이용을 제한하므로 OSI가 승인한 오픈소스 라이선스에 해당하지 않습니다. 자세한 조건은 [LICENSE](LICENSE)를 확인하세요.

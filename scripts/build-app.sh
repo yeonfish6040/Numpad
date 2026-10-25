@@ -11,6 +11,7 @@ swift build "${build_args[@]}"
 binary_dir="$(swift build "${build_args[@]}" --show-bin-path)"
 bundle="$PWD/dist/Numpad.app"
 mkdir -p "$bundle/Contents/MacOS" "$bundle/Contents/Resources"
+cp LICENSE "$bundle/Contents/Resources/LICENSE"
 cp "$binary_dir/TrackpadNumpad" "$bundle/Contents/MacOS/TrackpadNumpad"
 for resource in "$binary_dir"/*.bundle; do
     if [[ -d "$resource" ]]; then
