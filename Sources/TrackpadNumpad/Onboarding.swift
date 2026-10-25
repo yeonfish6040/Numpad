@@ -55,7 +55,7 @@ final class OnboardingModel: ObservableObject {
     var nextKey: PadKey? {
         guard typed.count < target.count else { return nil }
         let label = String(target[target.index(target.startIndex, offsetBy: typed.count)])
-        return app.controlSide.keys.first { $0.label == label }
+        return app.keypadKeys.first { $0.label == label }
     }
 
     func next() {
@@ -99,8 +99,14 @@ final class OnboardingModel: ObservableObject {
         switch step {
         case .shortcut:
             chord.reset(); shortcutDone = false
-            monitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
-                self?.flagsChanged(UInt64(event.modifierFlags.rawValue)); return event
+            monitor = NSEvent.addLocalMonitorForEvents(matching: [.flagsChanged, .keyDown]) { [weak self] event in
+                guard let self else { return event }
+                if event.type == .flagsChanged { self.flagsChanged(UInt64(event.modifierFlags.rawValue)) }
+                else if self.app.activationShortcut.matches(keyCode: event.keyCode,
+                    flags: UInt64(event.modifierFlags.rawValue), isRepeat: event.isARepeat) {
+                    self.shortcutPressed(); return nil
+                }
+                return event
             }
         case .practice: startPractice()
         default: break
@@ -122,6 +128,7 @@ final class OnboardingModel: ObservableObject {
 
     /// Device-dependent modifier bits from IOLLEvent.h distinguish left and right keys.
     private func flagsChanged(_ flags: UInt64) {
+        guard app.activationShortcut.isDefault else { return }
         let wasLeft = leftCommand && leftOption
         withAnimation(.spring(response: 0.18, dampingFraction: 0.6)) {
             rightCommand = flags & 0x10 != 0; rightOption = flags & 0x40 != 0
@@ -146,16 +153,18 @@ final class OnboardingModel: ObservableObject {
     private func startPractice() {
         guard stream == nil else { return }
         typed = ""; practiceDone = false; touches = []
-        recognizer = AnchoredTapRecognizer(layout: app.controlSide)
+        recognizer = AnchoredTapRecognizer(layout: app.controlSide, keys: app.keypadKeys)
         recognizer.reset(waitForLift: true)
-        guard TPInitialize() else { practiceAvailable = false; return }
+        app.refreshTrackpads()
+        guard TPInitialize(), let deviceID = app.selectedDeviceIDs.first else { practiceAvailable = false; return }
+        input.selectedDeviceIDs = [deviceID]
         // Hold the pointer still like the real mode so taps never click this window.
         if AXIsProcessTrusted() {
             input.onEscape = { [weak self] in self?.next() }
             input.onFailure = { [weak self] in self?.input.stop() }
             _ = input.start()
         }
-        let created = TouchStream { [weak self] touches, timestamp in self?.receive(touches, at: timestamp) }
+        let created = TouchStream(deviceIDs: [deviceID]) { [weak self] _, touches, timestamp in self?.receive(touches, at: timestamp) }
         if created.start() { stream = created; practiceAvailable = true } else { practiceAvailable = false; input.stop() }
     }
 
@@ -170,7 +179,7 @@ final class OnboardingModel: ObservableObject {
     private func receive(_ touches: [Touch], at timestamp: Double) {
         guard active, step == .practice, stream != nil else { return }
         self.touches = touches.map { CGPoint(x: min(1, max(0, $0.x)), y: min(1, max(0, $0.y))) }
-        input.updateTouches(touches)
+        if let deviceID = app.selectedDeviceIDs.first { input.updateTouches(touches, deviceID: deviceID) }
         let key = recognizer.process(touches, at: timestamp, suppressInput: practiceDone)
         if recognizer.beganKey != nil && !practiceDone { app.playHaptic() }
         guard let key, !practiceDone else { return }
@@ -239,7 +248,7 @@ struct OnboardingView: View {
         case .layout: LayoutStep(app: app)
         case .shortcut: ShortcutStep(model: model)
         case .practice: PracticeStep(model: model, layout: app.controlSide)
-        case .done: DoneStep()
+        case .done: DoneStep(shortcut: app.shortcutTitle)
         }
     }
 
@@ -502,7 +511,11 @@ private struct ShortcutStep: View {
     var body: some View {
         VStack(spacing: 40) {
             StepTitle(eyebrow: L("SHORTCUT"), title: L("One shortcut, on or off"),
-                      subtitle: L("Press Command ⌘ and Option ⌥ together on the right of the space bar."))
+                      subtitle: model.app.activationShortcut.isDefault ? L("Press Command ⌘ and Option ⌥ together on the right of the space bar.") : L("Press your activation shortcut."))
+            if !model.app.activationShortcut.isDefault {
+                Text(model.app.shortcutTitle).font(.system(size: 36, weight: .semibold, design: .rounded))
+                    .padding(24).background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
+            } else {
             HStack(alignment: .bottom, spacing: 7) {
                 Keycap(symbol: "fn", name: "", width: 52, dim: true)
                 Keycap(symbol: "⌃", name: "control", width: 58, dim: true)
@@ -514,6 +527,7 @@ private struct ShortcutStep: View {
             }
             .modifier(Shake(animatableData: CGFloat(model.wrongSide)))
             .animation(.linear(duration: 0.4), value: model.wrongSide)
+            }
             Group {
                 if model.shortcutDone {
                     Label(L("Got it! You can now turn on the keypad in any app."), systemImage: "checkmark.circle.fill")
@@ -540,7 +554,7 @@ private struct PracticeStep: View {
     var body: some View {
         HStack(spacing: 44) {
             ZStack {
-                PadSurface(layout: layout, highlighted: model.flash, target: model.practiceDone ? nil : model.nextKey?.id,
+                PadSurface(layout: layout, keys: model.app.keypadKeys, highlighted: model.flash, target: model.practiceDone ? nil : model.nextKey?.id,
                            touches: model.touches, labelSize: 20)
                     .aspectRatio(PadGeometry.aspectRatio, contentMode: .fit)
                     .frame(width: 380)
@@ -612,6 +626,7 @@ private struct Tip: View {
 }
 
 private struct DoneStep: View {
+    var shortcut: String
     @State private var drawn = false
     var body: some View {
         VStack(spacing: 30) {
@@ -629,7 +644,7 @@ private struct DoneStep: View {
             StepTitle(eyebrow: L("ALL SET"), title: L("Numbers at your fingertips"),
                       subtitle: L("Numpad is ready in your menu bar. Focus an input field and press the shortcut to start typing numbers."))
             HStack(spacing: 14) {
-                SummaryCard(symbol: "command", title: L("Right ⌘ + ⌥"), caption: L("Toggle on or off"))
+                SummaryCard(symbol: "command", title: shortcut, caption: L("Toggle on or off"))
                 SummaryCard(symbol: "escape", title: "Esc", caption: L("Turn off instantly"))
                 SummaryCard(symbol: "rectangle.grid.3x3", title: L("Menu bar"), caption: L("Settings and preview"))
             }

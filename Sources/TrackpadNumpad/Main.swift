@@ -21,7 +21,11 @@ enum Main {
         if CommandLine.arguments.contains("--diagnose") {
             let ready = TPInitialize()
             print("macOS: \(ProcessInfo.processInfo.operatingSystemVersionString)")
-            print("MultitouchSupport / default trackpad: \(ready ? "OK" : String(cString: TPError()))")
+            print("MultitouchSupport / trackpads: \(ready ? "OK" : String(cString: TPError()))")
+            for device in TrackpadDevice.connected() {
+                print("Trackpad: \(device.name), id=\(device.id), registry=\(device.registryID), built-in=\(device.builtIn)")
+                print("Sender attribution: \(TPDeviceIDForSender(device.registryID) == device.id ? "OK" : "unavailable")")
+            }
             print("Accessibility: \(AXIsProcessTrusted() ? "granted" : "not granted")")
             if ready {
                 let started = TPStart({ _, _, _, _ in }, nil)

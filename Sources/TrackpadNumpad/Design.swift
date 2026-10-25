@@ -103,6 +103,7 @@ struct Keycap: View {
 
 struct PadSurface: View {
     var layout: KeypadLayout
+    var keys: [PadKey]? = nil
     var revealed = Int.max
     var highlighted: UInt16?
     var target: UInt16?
@@ -117,7 +118,7 @@ struct PadSurface: View {
             let width = (geometry.size.width - gap * CGFloat(PadKey.columnCount - 1)) / CGFloat(PadKey.columnCount)
             let height = (geometry.size.height - gap * CGFloat(PadKey.rowCount - 1)) / CGFloat(PadKey.rowCount)
             // Reveal keys as a diagonal wave from the top-left corner.
-            let order = layout.keys.sorted { ($0.row + $0.column, $0.row) < ($1.row + $1.column, $1.row) }
+            let order = (keys ?? layout.keys).sorted { ($0.row + $0.column, $0.row) < ($1.row + $1.column, $1.row) }
             ZStack(alignment: .topLeading) {
                 ForEach(Array(order.enumerated()), id: \.element.id) { index, key in
                     KeyTile(key: key, shown: index < revealed, lit: highlighted == key.id,

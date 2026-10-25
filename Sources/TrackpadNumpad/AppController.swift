@@ -31,9 +31,70 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         didSet {
             guard oldValue != controlSide else { return }
             UserDefaults.standard.set(controlSide.rawValue, forKey: "controlSide")
+            arrangement = KeyArrangement.load(layout: controlSide)
+        }
+    }
+    @Published var arrangement = KeyArrangement.load(layout: KeypadLayout(rawValue: UserDefaults.standard.string(forKey: "controlSide") ?? "left") ?? .left) {
+        didSet {
+            arrangement.save(layout: controlSide)
+            disable()
             configurationChanged()
         }
     }
+    var keypadKeys: [PadKey] { arrangement.keys(for: controlSide) }
+    @Published var activationShortcut = KeyboardShortcut.load() {
+        didSet {
+            UserDefaults.standard.set(try? JSONEncoder().encode(activationShortcut), forKey: "activationShortcut")
+            optionShortcut.configuration = activationShortcut
+            if item != nil { updateMenu() }
+        }
+    }
+    var recordingShortcut = false { didSet { optionShortcut.suspended = recordingShortcut } }
+    var shortcutTitle: String { activationShortcut.displayName }
+    @Published private(set) var trackpads: [TrackpadDevice] = []
+    @Published private(set) var enabledTrackpads = Set(UserDefaults.standard.stringArray(forKey: "enabledTrackpads") ?? [])
+    @Published private(set) var currentDeviceID: UInt64 = 0
+    private struct DeviceSession {
+        var recognizer: AnchoredTapRecognizer
+        var center: CenterCrossingFeedback
+        var gesture = InteractiveCalibrationGesture()
+        var touches: [Touch] = []
+        var transform = PadTransform.identity
+        var hasCalibration = false
+        var text = LocalizedMessage("No calibration yet.")
+        var tracking = false
+        var baseline: (transform: PadTransform, has: Bool, status: LocalizedMessage)?
+    }
+    private var deviceSessions: [UInt64: DeviceSession] = [:]
+    var selectedDeviceIDs: [UInt64] { trackpads.filter { enabledTrackpads.contains($0.persistentID) }.map(\.id) }
+
+    func setTrackpad(_ device: TrackpadDevice, enabled: Bool) {
+        disable()
+        if enabled { enabledTrackpads.insert(device.persistentID) }
+        else { enabledTrackpads.remove(device.persistentID) }
+        UserDefaults.standard.set(Array(enabledTrackpads), forKey: "enabledTrackpads")
+    }
+
+    func refreshTrackpads() {
+        if enabled { disable() }
+        trackpads = TrackpadDevice.connected(refresh: true)
+        deviceReady = !trackpads.isEmpty
+        // Keep the original single-device experience on first use. Devices
+        // connected later stay unselected until the user opts in.
+        if UserDefaults.standard.object(forKey: "enabledTrackpads") == nil, let first = trackpads.first(where: { $0.builtIn }) ?? trackpads.first {
+            enabledTrackpads = [first.persistentID]
+            UserDefaults.standard.set(Array(enabledTrackpads), forKey: "enabledTrackpads")
+        }
+        currentDeviceID = selectedDeviceIDs.first ?? trackpads.first?.id ?? 0
+        configurationChanged()
+    }
+
+    func selectCalibrationDevice(_ id: UInt64) {
+        guard !enabled, trackpads.contains(where: { $0.id == id }) else { return }
+        currentDeviceID = id
+        configurationChanged()
+    }
+
     @Published var experimentalCalibration = UserDefaults.standard.bool(forKey: "experimentalCalibration") {
         didSet {
             UserDefaults.standard.set(experimentalCalibration, forKey: "experimentalCalibration")
@@ -115,17 +176,20 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
     private var highlightClearWork: DispatchWorkItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        configurationChanged()
+        // Recover only a journal left by an older release. New sessions never
+        // change system-wide zoom preferences, which affect unselected devices.
+        _ = ScreenZoomSuppression()
+        refreshTrackpads()
+        optionShortcut.configuration = activationShortcut
         deviceReady = TPInitialize()
         if !deviceReady { messageText = LocalizedMessage(String(cString: TPError())) }
         item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         updateMenu()
         input.onEscape = { [weak self] in self?.disable() }
-        input.onPhysicalClick = { [weak self] in
+        input.onPhysicalClick = { [weak self] deviceID in
             guard let self else { return }
-            self.recognizer.cancelCurrentTap()
-            if let panel = self.panel, panel.isVisible, panel.frame.contains(NSEvent.mouseLocation) { return }
-
+            if deviceID == self.currentDeviceID { self.recognizer.cancelCurrentTap() }
+            else { self.deviceSessions[deviceID]?.recognizer.cancelCurrentTap() }
         }
         optionShortcut.action = { [weak self] in
             guard let self else { return }
@@ -156,6 +220,12 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         ) { [weak self] _ in self?.disable() }
         permissionTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             guard let self else { return }
+            if TPDevicesChanged() {
+                let wasEnabled = self.enabled
+                self.onboardingWindow?.close()
+                self.refreshTrackpads()
+                if wasEnabled { self.messageText = LocalizedMessage("Trackpad connections changed. Check your devices and turn the keypad on again.") }
+            }
             let wasTrusted = self.trusted
             self.trusted = AXIsProcessTrusted()
             if wasTrusted != self.trusted { self.updateMenu() }
@@ -191,24 +261,38 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
             requestPermission(); return
         }
         guard !IsSecureEventInputEnabled() else { messageText = LocalizedMessage("Turn the keypad on again after leaving Secure Input."); return }
+        refreshTrackpads()
         deviceReady = TPInitialize()
+        guard !selectedDeviceIDs.isEmpty else {
+            messageText = LocalizedMessage("Select a trackpad in Settings before turning on the keypad.")
+            showSettings(); return
+        }
         guard deviceReady else { messageText = LocalizedMessage(String(cString: TPError())); showSettings(); return }
         activationInput = FocusedInput.capture(applicationPID: NSApp.isActive ? previousApp?.processIdentifier : nil)
+        input.selectedDeviceIDs = Set(selectedDeviceIDs)
         guard input.start() else {
             messageText = LocalizedMessage("Could not start input monitoring. Check Accessibility access and restart Numpad.")
             showSettings(); return
         }
         generation += 1
         let session = generation
-        recognizer.reset()
-        centerFeedback.reset()
-        calibrationGesture.reset()
+        deviceSessions.removeAll()
+        currentDeviceID = 0
+        for id in selectedDeviceIDs {
+            selectDeviceSession(id)
+            recognizer.reset(); centerFeedback.reset(); calibrationGesture.reset()
+            if !keepCalibrationOnReactivate {
+                calibrationTransform = .identity; hasCalibration = false
+            }
+        }
+        saveDeviceSession()
         // Ignore the click/finger used to enable the mode, including delayed framework frames.
         let readyAt = ProcessInfo.processInfo.systemUptime + 0.25
-        stream = TouchStream { [weak self] touches, timestamp in
+        stream = TouchStream(deviceIDs: selectedDeviceIDs) { [weak self] deviceID, touches, timestamp in
             guard let self, self.enabled, self.generation == session else { return }
+            self.selectDeviceSession(deviceID)
             self.touches = touches
-            self.input.updateTouches(touches)
+            self.input.updateTouches(touches, deviceID: deviceID)
             if self.overlayDragging {
                 self.recognizer.reset(waitForLift: !touches.isEmpty)
                 self.centerFeedback.reset()
@@ -265,12 +349,16 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
     }
 
     func disable() {
-        if calibrationTracking { persistCalibration() }
+        saveDeviceSession()
+        for (id, state) in deviceSessions where state.tracking && state.hasCalibration {
+            if let data = try? JSONEncoder().encode(state.transform) { UserDefaults.standard.set(data, forKey: calibrationKey(for: id)) }
+        }
         calibrationTracking = false; calibrationBaseline = nil
         enabled = false; generation += 1
         snapPanel?.orderOut(nil); overlaySnapPreview = nil; overlayDragging = false
         input.stop()
         stream?.stop(); stream = nil
+        deviceSessions.removeAll()
         recognizer.reset(); centerFeedback.reset(); calibrationGesture.reset(); clearKeyHighlight(); touches = []
         previewRevision += 1
         activationInput = nil
@@ -279,8 +367,32 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         if item != nil { updateMenu() }
     }
 
-    private var calibrationKey: String {
-        "calibration.similarity456.v1." + controlSide.rawValue
+    private func calibrationKey(for id: UInt64) -> String {
+        let identity = trackpads.first { $0.id == id }?.persistentID ?? "unknown"
+        let mapping = arrangement.codes.map(String.init).joined(separator: "-")
+        return "calibration.devices.v2." + identity + "." + controlSide.rawValue + "." + mapping
+    }
+    private var calibrationKey: String { calibrationKey(for: currentDeviceID) }
+
+    private func saveDeviceSession() {
+        guard currentDeviceID != 0 else { return }
+        deviceSessions[currentDeviceID] = DeviceSession(recognizer: recognizer, center: centerFeedback,
+            gesture: calibrationGesture, touches: touches, transform: calibrationTransform,
+            hasCalibration: hasCalibration, text: calibrationText, tracking: calibrationTracking, baseline: calibrationBaseline)
+    }
+
+    private func selectDeviceSession(_ id: UInt64) {
+        guard id != currentDeviceID else { return }
+        saveDeviceSession()
+        currentDeviceID = id
+        if let state = deviceSessions[id] {
+            recognizer = state.recognizer; centerFeedback = state.center; calibrationGesture = state.gesture
+            touches = state.touches; calibrationTransform = state.transform; hasCalibration = state.hasCalibration
+            calibrationText = state.text; calibrationTracking = state.tracking; calibrationBaseline = state.baseline
+        } else {
+            touches = []
+            configurationChanged()
+        }
     }
 
     private func showKeyHighlight(_ keyID: UInt16) {
@@ -300,14 +412,21 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
 
     private func resetInputState() {
         calibrationTracking = false; calibrationBaseline = nil
-        recognizer = AnchoredTapRecognizer(layout: controlSide)
+        recognizer = AnchoredTapRecognizer(layout: controlSide, keys: keypadKeys)
         recognizer.reset(waitForLift: !touches.isEmpty)
-        centerFeedback = CenterCrossingFeedback(layout: controlSide)
+        centerFeedback = CenterCrossingFeedback(layout: controlSide, keys: keypadKeys)
         calibrationGesture.reset(waitForLift: !touches.isEmpty)
         clearKeyHighlight()
     }
 
     private func configurationChanged() {
+        let legacyKey = "calibration.similarity456.v1." + controlSide.rawValue
+        if arrangement == KeyArrangement(), trackpads.first(where: { $0.id == currentDeviceID })?.builtIn == true,
+           UserDefaults.standard.data(forKey: calibrationKey) == nil,
+           let legacy = UserDefaults.standard.data(forKey: legacyKey) {
+            UserDefaults.standard.set(legacy, forKey: calibrationKey)
+            UserDefaults.standard.removeObject(forKey: legacyKey)
+        }
         if let data = UserDefaults.standard.data(forKey: calibrationKey),
            let saved = try? JSONDecoder().decode(PadTransform.self, from: data), saved.isSimilarity {
             calibrationTransform = saved; hasCalibration = true
@@ -351,7 +470,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
     private func applyCalibration(_ points: [PadPoint], persist: Bool = true, feedback: Bool = true,
                                   resetGesture: Bool = true, preserveOrder: Bool = false) {
         do {
-            let transform = try PadTransform.calibrating(points, layout: controlSide, preserveOrder: preserveOrder, reference: calibrationBaseline?.transform ?? calibrationTransform)
+            let transform = try PadTransform.calibrating(points, layout: controlSide, keys: keypadKeys, preserveOrder: preserveOrder, reference: calibrationBaseline?.transform ?? calibrationTransform)
             calibrationTransform = transform; hasCalibration = true
             if persist { persistCalibration() }
             calibrationText = LocalizedMessage(persist ? "%d-finger calibration applied · Position, rotation, and scale" : "Calibrating with %d fingers", count: points.count)
@@ -370,8 +489,10 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
 
     func playHaptic(strong: Bool = false) {
         guard hapticsEnabled else { return }
-        if !(strong ? TPHapticCenter() : TPHapticClick()) {
-            NSHapticFeedbackManager.defaultPerformer.perform(strong ? .generic : .alignment, performanceTime: .now)
+        if currentDeviceID != 0 {
+            _ = TPHapticForDevice(currentDeviceID, strong)
+        } else if let id = selectedDeviceIDs.first {
+            _ = TPHapticForDevice(id, strong)
         }
     }
 
@@ -387,7 +508,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         onboardingWindow?.close()
         if enabled { disable() }
         if settingsWindow == nil {
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 580, height: 700),
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 680, height: 740),
                 styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
             window.title = L("Numpad Settings")
             window.contentView = NSHostingView(rootView: SettingsView(model: self))
@@ -396,6 +517,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
             window.center()
             settingsWindow = window
         }
+        refreshTrackpads()
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         settingsWindow?.makeKeyAndOrderFront(nil)
@@ -592,9 +714,9 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
     private func updateMenu() {
         item.button?.image = NSImage(systemSymbolName: enabled ? "rectangle.grid.3x3.fill" : "rectangle.grid.3x3", accessibilityDescription: "Numpad")
         item.button?.contentTintColor = enabled ? .systemMint : nil
-        item.button?.toolTip = L("Numpad · Right ⌘ + Right ⌥ to toggle")
+        item.button?.toolTip = "Numpad · " + shortcutTitle
         let menu = NSMenu()
-        menu.addItem(withTitle: enabled ? L("Turn Keypad Off  Right ⌘⌥ / Esc") : L("Turn Keypad On  Right ⌘⌥"), action: #selector(toggle), keyEquivalent: "")
+        menu.addItem(withTitle: (enabled ? L("Turn Keypad Off") : L("Turn Keypad On")) + "  " + shortcutTitle, action: #selector(toggle), keyEquivalent: "")
         menu.addItem(withTitle: L("Settings…"), action: #selector(showSettings), keyEquivalent: ",")
         menu.addItem(withTitle: L("Preview Keypad"), action: #selector(previewGuide), keyEquivalent: "")
         menu.addItem(withTitle: L("Getting Started…"), action: #selector(showOnboarding), keyEquivalent: "")

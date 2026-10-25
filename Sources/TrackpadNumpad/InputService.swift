@@ -4,23 +4,55 @@ import Carbon
 import CTrackpad
 import TrackpadCore
 
-final class TouchStream {
-    let receive: ([Touch], Double) -> Void
-    init(receive: @escaping ([Touch], Double) -> Void) { self.receive = receive }
+struct TrackpadDevice: Identifiable, Equatable {
+    let id: UInt64
+    let registryID: UInt64
+    let persistentID: String
+    let name: String
+    let builtIn: Bool
 
+    static func connected(refresh: Bool = false) -> [Self] {
+        if refresh { _ = TPRefreshDevices() }
+        return (0..<TPDeviceCount()).compactMap { index in
+            var info = TPDeviceInfo()
+            guard TPGetDeviceInfo(index, &info) else { return nil }
+            let name = withUnsafePointer(to: &info.name) { pointer in
+                pointer.withMemoryRebound(to: CChar.self, capacity: 128) { String(cString: $0) }
+            }
+            let persistentID = withUnsafePointer(to: &info.persistentID) { pointer in
+                pointer.withMemoryRebound(to: CChar.self, capacity: 256) { String(cString: $0) }
+            }
+            return Self(id: info.identifier, registryID: info.registryID, persistentID: persistentID,
+                        name: name, builtIn: info.builtIn)
+        }
+    }
+}
+
+final class TouchStream {
+    let receive: (UInt64, [Touch], Double) -> Void
+    private let deviceIDs: [UInt64]
+    private var revision = 0
+    init(deviceIDs: [UInt64], receive: @escaping (UInt64, [Touch], Double) -> Void) {
+        self.deviceIDs = deviceIDs; self.receive = receive
+    }
     func start() -> Bool {
-        TPStart({ pointer, count, timestamp, context in
+        revision += 1
+        return TPStartDevices(deviceIDs, Int32(deviceIDs.count), { deviceID, pointer, count, timestamp, context in
             guard let context else { return }
             let stream = Unmanaged<TouchStream>.fromOpaque(context).takeUnretainedValue()
             let touches = (0..<Int(count)).compactMap { index -> Touch? in
                 guard let item = pointer?[index] else { return nil }
                 return Touch(id: item.identifier, x: Double(item.x), y: Double(item.y))
             }
-            // Framework-owned memory must be copied before this callback returns.
-            DispatchQueue.main.async { stream.receive(touches, timestamp) }
+            // Capture only copied framework data. Revision is checked on main,
+            // never read on the framework thread.
+            DispatchQueue.main.async { [weak stream] in
+                guard let stream, stream.revision > 0 else { return }
+                stream.receive(deviceID, touches, timestamp)
+            }
         }, Unmanaged.passUnretained(self).toOpaque())
     }
-    func stop() { TPStop() }
+    func stop() { TPStop(); revision = 0 }
 }
 
 final class InputService {
@@ -28,23 +60,34 @@ final class InputService {
     private var earlySource: CFRunLoopSource?
     private var tap: CFMachPort?
     private var source: CFRunLoopSource?
-    private var clicks = ClickFilter()
-    private var lastTrackpadTouch = -Double.infinity
-    private let screenZoom = ScreenZoomSuppression()
-    private var threeFingerDrag = ThreeFingerDragSuppression()
-    var blocksSystemGestures = false {
-        didSet {
-            screenZoom.update(enabled: blocksSystemGestures)
-            if !blocksSystemGestures { threeFingerDrag.reset() }
-        }
+    private var pointerFilter = DevicePointerFilter()
+    private var senderCache: [UInt64: UInt64] = [:]
+    var selectedDeviceIDs: Set<UInt64> = [] {
+        didSet { senderCache.removeAll(); pointerFilter = DevicePointerFilter(selected: selectedDeviceIDs) }
     }
+    var blocksSystemGestures = false
     var onEscape: (() -> Void)?
     var onFailure: (() -> Void)?
-    var onPhysicalClick: (() -> Void)?
+    var onPhysicalClick: ((UInt64) -> Void)?
 
-    func updateTouches(_ touches: [Touch]) {
-        if !touches.isEmpty { lastTrackpadTouch = ProcessInfo.processInfo.systemUptime }
-        threeFingerDrag.update(contactCount: touches.count, enabled: blocksSystemGestures)
+    func updateTouches(_ touches: [Touch], deviceID: UInt64) {
+        guard selectedDeviceIDs.contains(deviceID) else { return }
+        pointerFilter.updateTouches(deviceID: deviceID, count: touches.count, calibrationEnabled: blocksSystemGestures)
+    }
+
+    private func selectedSender(_ event: CGEvent) -> UInt64? {
+        // Field 87 is the IORegistry sender ID, not the Multitouch device ID.
+        // Unknown/synthetic events pass unchanged; no temporal attribution.
+        let sender = UInt64(bitPattern: event.getIntegerValueField(CGEventField(rawValue: 87)!))
+        guard sender != 0 else { return nil }
+        let deviceID: UInt64
+        if let cached = senderCache[sender] { deviceID = cached }
+        else {
+            deviceID = TPDeviceIDForSender(sender)
+            if senderCache.count > 256 { senderCache.removeAll() }
+            senderCache[sender] = deviceID
+        }
+        return DeviceInputPolicy(selected: selectedDeviceIDs).shouldFilter(deviceID: deviceID) ? deviceID : nil
     }
 
     func start() -> Bool {
@@ -73,31 +116,23 @@ final class InputService {
                     }
                     return Unmanaged.passUnretained(event)
                 }
-                if SystemGestureFilter.isGesture(type.rawValue) {
-                    // Gate on mode, not asynchronous raw contact counts: the
-                    // WindowServer can deliver the first gesture before touches.
-                    return service.blocksSystemGestures ? nil : Unmanaged.passUnretained(event)
-                }
+                guard let deviceID = service.selectedSender(event) else { return Unmanaged.passUnretained(event) }
                 let button = Int(event.getIntegerValueField(.mouseEventButtonNumber))
+                let kind: PointerEventKind
                 switch type {
-                case .mouseMoved:
-                    // Keep raw trackpad gestures from moving the pointer, while
-                    // an external mouse can still reach and drag the overlay.
-                    return ProcessInfo.processInfo.systemUptime - service.lastTrackpadTouch >= 0.25 ? Unmanaged.passUnretained(event) : nil
-                case .leftMouseDown, .rightMouseDown, .otherMouseDown:
-                    let allow = service.clicks.down(button: button,
-                        pressure: event.getDoubleValueField(.mouseEventPressure),
-                        recentTrackpadTouch: ProcessInfo.processInfo.systemUptime - service.lastTrackpadTouch < 0.25,
-                        forceSuppress: service.threeFingerDrag.active)
-                    if allow { service.onPhysicalClick?() }
-                    return allow ? Unmanaged.passUnretained(event) : nil
-                case .leftMouseUp, .rightMouseUp, .otherMouseUp:
-                    return service.clicks.up(button: button) ? Unmanaged.passUnretained(event) : nil
-                case .leftMouseDragged, .rightMouseDragged, .otherMouseDragged:
-                    return !service.threeFingerDrag.active && service.clicks.drag(button: button) ? Unmanaged.passUnretained(event) : nil
+                case .mouseMoved: kind = .move
+                case .scrollWheel: kind = .scroll
+                case .leftMouseDown, .rightMouseDown, .otherMouseDown: kind = .down(button)
+                case .leftMouseUp, .rightMouseUp, .otherMouseUp: kind = .up(button)
+                case .leftMouseDragged, .rightMouseDragged, .otherMouseDragged: kind = .drag(button)
                 default:
-                    return nil
+                    guard SystemGestureFilter.isGesture(type.rawValue) else { return Unmanaged.passUnretained(event) }
+                    kind = .gesture
                 }
+                let allow = service.pointerFilter.allows(kind, deviceID: deviceID,
+                    pressure: event.getDoubleValueField(.mouseEventPressure))
+                if allow, case .down = kind { service.onPhysicalClick?(deviceID) }
+                return allow ? Unmanaged.passUnretained(event) : nil
             }, userInfo: Unmanaged.passUnretained(self).toOpaque()) else { return false }
         guard let runSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, port, 0) else {
             CFMachPortInvalidate(port); return false
@@ -113,7 +148,7 @@ final class InputService {
                     service.onFailure?()
                     return Unmanaged.passUnretained(event)
                 }
-                return service.blocksSystemGestures ? nil : Unmanaged.passUnretained(event)
+                return service.selectedSender(event) != nil ? nil : Unmanaged.passUnretained(event)
             }, userInfo: Unmanaged.passUnretained(self).toOpaque()),
             let earlyRunSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, early, 0) else {
                 CFMachPortInvalidate(port); return false
@@ -128,15 +163,14 @@ final class InputService {
     }
 
     func stop() {
-        screenZoom.restore()
         if let earlyTap { CGEvent.tapEnable(tap: earlyTap, enable: false); CFMachPortInvalidate(earlyTap) }
         if let earlySource { CFRunLoopRemoveSource(CFRunLoopGetMain(), earlySource, .commonModes) }
         earlyTap = nil; earlySource = nil
         if let tap { CGEvent.tapEnable(tap: tap, enable: false); CFMachPortInvalidate(tap) }
         if let source { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes) }
         tap = nil; source = nil
-        clicks.reset(); lastTrackpadTouch = -Double.infinity
-        threeFingerDrag.reset(); blocksSystemGestures = false
+        senderCache.removeAll(); pointerFilter = DevicePointerFilter(selected: selectedDeviceIDs)
+        blocksSystemGestures = false
     }
 
     func send(_ key: PadKey) {
@@ -154,20 +188,41 @@ final class ActivationShortcut {
     private var tap: CFMachPort?
     private var source: CFRunLoopSource?
     private var chord = RightModifierChord()
+    private var consumedKey: UInt16?
     var action: (() -> Void)?
+    var suspended = false { didSet { chord.reset() } }
+    var configuration = KeyboardShortcut.default { didSet { chord.reset() } }
 
     func start() {
         guard tap == nil, AXIsProcessTrusted() else { return }
         guard let port = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .headInsertEventTap,
-            options: .listenOnly, eventsOfInterest: CGEventMask(1) << CGEventType.flagsChanged.rawValue,
+            options: .defaultTap, eventsOfInterest: [CGEventType.flagsChanged, .keyDown, .keyUp]
+                .reduce(CGEventMask(0)) { $0 | (CGEventMask(1) << $1.rawValue) },
             callback: { _, type, event, context in
                 guard let context else { return Unmanaged.passUnretained(event) }
                 let shortcut = Unmanaged<ActivationShortcut>.fromOpaque(context).takeUnretainedValue()
                 if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
                     shortcut.chord.reset()
+                    shortcut.consumedKey = nil
                     if let tap = shortcut.tap { CGEvent.tapEnable(tap: tap, enable: true) }
-                } else if type == .flagsChanged, shortcut.chord.update(flags: event.flags.rawValue) {
-                    DispatchQueue.main.async { shortcut.action?() }
+                } else if !shortcut.suspended {
+                    let code = UInt16(truncatingIfNeeded: event.getIntegerValueField(.keyboardEventKeycode))
+                    if (type == .keyDown || type == .keyUp), shortcut.consumedKey == code {
+                        if type == .keyUp { shortcut.consumedKey = nil }
+                        return nil
+                    }
+                    let activate: Bool
+                    if shortcut.configuration.isDefault {
+                        activate = type == .flagsChanged && shortcut.chord.update(flags: event.flags.rawValue)
+                    } else {
+                        activate = type == .keyDown && shortcut.configuration.matches(
+                            keyCode: code,
+                            flags: event.flags.rawValue, isRepeat: event.getIntegerValueField(.keyboardEventAutorepeat) != 0)
+                    }
+                    if activate {
+                        DispatchQueue.main.async { if !shortcut.suspended { shortcut.action?() } }
+                        if type == .keyDown { shortcut.consumedKey = code; return nil }
+                    }
                 }
                 return Unmanaged.passUnretained(event)
             }, userInfo: Unmanaged.passUnretained(self).toOpaque()) else { return }
@@ -182,7 +237,7 @@ final class ActivationShortcut {
     func stop() {
         if let tap { CFMachPortInvalidate(tap) }
         if let source { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes) }
-        tap = nil; source = nil; chord.reset()
+        tap = nil; source = nil; chord.reset(); consumedKey = nil
     }
     deinit { stop() }
 }

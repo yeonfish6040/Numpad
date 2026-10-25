@@ -19,6 +19,7 @@ struct KeypadView: View {
     var highlighted: UInt16?
     var compact = false
     var layout: KeypadLayout = .left
+    var keys: [PadKey]?
 
     var body: some View {
         GeometryReader { geometry in
@@ -26,7 +27,7 @@ struct KeypadView: View {
             let width = (geometry.size.width - gap * CGFloat(PadKey.columnCount - 1)) / CGFloat(PadKey.columnCount)
             let height = (geometry.size.height - gap * CGFloat(PadKey.rowCount - 1)) / CGFloat(PadKey.rowCount)
             ZStack(alignment: .topLeading) {
-                ForEach(layout.keys) { key in
+                ForEach(keys ?? layout.keys) { key in
                     let active = highlighted == key.id
                     let operation = key.isOperation
                     RoundedRectangle(cornerRadius: compact ? 7 : 10)
@@ -58,7 +59,7 @@ struct GuideView: View {
         VStack(spacing: 8) {
             GeometryReader { geometry in
                 ZStack(alignment: .topLeading) {
-                    KeypadView(highlighted: model.highlighted, compact: true, layout: model.controlSide)
+                    KeypadView(highlighted: model.highlighted, compact: true, layout: model.controlSide, keys: model.keypadKeys)
                         .transformEffect(model.effectiveTransform.inverse.screenTransform(size: geometry.size))
                         .animation(.easeOut(duration: (NSWorkspace.shared.accessibilityDisplayShouldReduceMotion || model.calibrationTracking) ? 0 : 0.18), value: model.effectiveTransform)
                     ForEach(Array(model.touches.enumerated()), id: \.offset) { _, touch in
@@ -137,11 +138,14 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 5) {
                 Text("Numpad").font(.system(size: 23, weight: .semibold))
-                Text(L("Right ⌘ + Right ⌥ to toggle · Esc to exit"))
+                Text(model.shortcutTitle + " · " + L("Press Esc to exit"))
                     .font(.system(size: 11)).foregroundStyle(.secondary)
+                Text(model.message).font(.system(size: 11)).foregroundStyle(.secondary)
             }
             TabView {
                 generalSettings.tabItem { Text(L("General")) }
+                keyboardSettings.tabItem { Text(L("Keyboard")) }
+                trackpadSettings.tabItem { Text(L("Trackpads")) }
                 hapticSettings.tabItem { Text(L("Haptics")) }
                 experimentalSettings.tabItem { Text(L("Experimental")) }
             }
@@ -156,7 +160,7 @@ struct SettingsView: View {
                 .font(.system(size: 10)).foregroundStyle(.tertiary)
         }
         .padding(24)
-        .frame(width: 580, height: 700)
+        .frame(width: 680, height: 740)
         .background(Color(red: 0.10, green: 0.105, blue: 0.11))
         .environment(\.colorScheme, .dark)
     }
@@ -175,17 +179,6 @@ struct SettingsView: View {
                     .frame(width: 160)
                 }
                 Divider()
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(L("Operator Position")).font(.headline)
-                    Picker(L("Operator Position"), selection: $model.controlSide) {
-                        Text(L("Left")).tag(KeypadLayout.left)
-                        Text(L("Right")).tag(KeypadLayout.right)
-                    }.pickerStyle(.segmented).labelsHidden()
-                    KeypadView(highlighted: nil, compact: true, layout: model.controlSide)
-                        .frame(height: 190).padding(14)
-                        .background(.white.opacity(0.025), in: RoundedRectangle(cornerRadius: 14))
-                }
-            Divider()
             HStack {
                 Text(L("Overlay Position")).font(.system(size: 12))
                 Spacer()
@@ -196,6 +189,53 @@ struct SettingsView: View {
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
         }.padding(20)
+    }
+
+    private var keyboardSettings: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                ShortcutSettings(model: model)
+                Divider()
+                KeyArrangementEditor(model: model)
+            }.padding(20)
+        }
+    }
+
+    private var trackpadSettings: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Text(L("Use as Keypad")).font(.headline)
+                    Spacer()
+                    Button(L("Refresh Devices")) { model.refreshTrackpads() }
+                }
+                Text(L("The activation shortcut toggles only the selected trackpads. Other trackpads keep their normal pointer, clicks, scrolling, and gestures."))
+                    .font(.system(size: 12)).foregroundStyle(.secondary)
+                if model.trackpads.isEmpty {
+                    Label(L("No trackpad found"), systemImage: "exclamationmark.triangle")
+                }
+                ForEach(model.trackpads) { device in
+                    HStack(spacing: 12) {
+                        Image(systemName: "rectangle.and.hand.point.up.left").font(.title2).foregroundStyle(mint)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(device.builtIn ? L("Built-in Trackpad") : device.name).fontWeight(.medium)
+                            Text((device.builtIn ? L("Built-in") : L("External")) + " · " + String(device.id, radix: 16).suffix(8))
+                                .font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Toggle(L("Use as Keypad"), isOn: Binding(
+                            get: { model.enabledTrackpads.contains(device.persistentID) },
+                            set: { model.setTrackpad(device, enabled: $0) }))
+                            .labelsHidden().toggleStyle(.switch).tint(mint)
+                    }
+                    .padding(14).background(.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 12))
+                }
+                Text(L("New trackpads stay off until selected. A connection change turns the keypad off safely; press the shortcut to resume. Selection is remembered for recognized devices."))
+                    .font(.system(size: 11)).foregroundStyle(.secondary)
+                Text(L("Events whose source device cannot be identified pass through unchanged."))
+                    .font(.system(size: 11)).foregroundStyle(.secondary)
+            }.padding(20)
+        }
     }
 
     private var hapticSettings: some View {
@@ -227,6 +267,15 @@ struct SettingsView: View {
     private var experimentalSettings: some View {
         ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
+                    if model.trackpads.count > 1 {
+                        Picker(L("Calibration Trackpad"), selection: Binding(
+                            get: { model.currentDeviceID }, set: { model.selectCalibrationDevice($0) })) {
+                            ForEach(model.trackpads) { device in
+                                Text((device.builtIn ? L("Built-in Trackpad") : device.name) + " · " + String(device.id, radix: 16).suffix(8))
+                                    .tag(device.id)
+                            }
+                        }
+                    }
                     Toggle(isOn: $model.experimentalCalibration) {
                         HStack(spacing: 8) {
                             Text(L("Calibrate with Finger Positions")).fontWeight(.medium)
@@ -243,7 +292,7 @@ struct SettingsView: View {
                             Text(L("On Touch")).tag(CalibrationTiming.touchDown)
                             Text(L("On Release")).tag(CalibrationTiming.liftOff)
                         }.pickerStyle(.segmented)
-                        Text(L("Defaults to On Touch. Drag with three or four fingers to move, rotate, and scale the layout live. macOS drag, zoom, and desktop-switching gestures are blocked during calibration."))
+                        Text(L("Defaults to On Touch. Drag with three or four fingers to move, rotate, and scale the layout live. Only events identified as coming from selected trackpads are blocked."))
                             .font(.system(size: 11)).foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -267,7 +316,7 @@ struct SettingsView: View {
                     }
                     .padding(12).background(.white.opacity(0.035), in: RoundedRectangle(cornerRadius: 10))
                     .disabled(!model.experimentalCalibration)
-                    Text(L("The latest calibration applies to the entire layout and is saved separately for each operator position. Turn calibration off to return to the default layout."))
+                    Text(L("Calibration is saved separately for each trackpad and key arrangement. Turn calibration off to use the uncalibrated layout."))
                         .font(.system(size: 11)).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                     HStack(alignment: .top) {

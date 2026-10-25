@@ -1,17 +1,23 @@
 import Foundation
 
 private struct FiveRegion {
-    static let width = 1 / Double(PadKey.columnCount)
-    static let height = 1 / Double(PadKey.rowCount)
+    let width: Double
+    let height: Double
     let center: PadPoint
-    init(layout: KeypadLayout) { center = layout.center(of: "5") }
+    init(layout: KeypadLayout, keys: [PadKey]? = nil) {
+        let key = (keys ?? layout.keys).first { $0.label == "5" }!
+        width = Double(key.columns) / Double(PadKey.columnCount)
+        height = Double(key.rows) / Double(PadKey.rowCount)
+        center = PadPoint(x: (Double(key.column) + Double(key.columns) / 2) / Double(PadKey.columnCount),
+                          y: 1 - (Double(key.row) + Double(key.rows) / 2) / Double(PadKey.rowCount))
+    }
 
     func distance(_ touch: Touch) -> Double {
-        hypot((touch.x - center.x) / Self.width, (touch.y - center.y) / Self.height)
+        hypot((touch.x - center.x) / width, (touch.y - center.y) / height)
     }
     func containsAnchor(_ touch: Touch) -> Bool {
         touch.x.isFinite && touch.y.isFinite &&
-            abs(touch.x - center.x) <= Self.width * 0.5 && abs(touch.y - center.y) <= Self.height * 0.5
+            abs(touch.x - center.x) <= width * 0.5 && abs(touch.y - center.y) <= height * 0.5
     }
 }
 
@@ -27,7 +33,7 @@ public struct CenterCrossingEvents: OptionSet {
 public struct CenterCrossingFeedback {
     private var contacts: [Int32: Bool] = [:]
     private let region: FiveRegion
-    public init(layout: KeypadLayout = .right) { region = FiveRegion(layout: layout) }
+    public init(layout: KeypadLayout = .right, keys: [PadKey]? = nil) { region = FiveRegion(layout: layout, keys: keys) }
     public mutating func reset() { contacts.removeAll() }
 
     public mutating func process(_ touches: [Touch]) -> Bool {
@@ -68,8 +74,8 @@ public struct AnchoredTapRecognizer {
     private var anchorOrigin: PadPoint?
     private var resting: [Int32: Rest] = [:]
     private var block = Block.none
-    public init(layout: KeypadLayout = .right) {
-        tap = TapRecognizer(layout: layout); region = FiveRegion(layout: layout)
+    public init(layout: KeypadLayout = .right, keys: [PadKey]? = nil) {
+        tap = TapRecognizer(layout: layout, keys: keys); region = FiveRegion(layout: layout, keys: keys)
     }
 
     public mutating func cancelCurrentTap() { tap.reset(waitForLift: true); beganKey = nil }

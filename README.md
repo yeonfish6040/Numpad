@@ -27,7 +27,7 @@
   <img src="docs/images/overlay.jpg" width="780" alt="Numpad’s floating keypad overlay, with numbers and operators laid out across the trackpad">
 </p>
 
-Press <kbd>Right ⌘</kbd> + <kbd>Right ⌥</kbd>, tap a number, and keep going. Numpad turns the touch surface you already have into a numeric keypad, with an overlay to guide you and haptics you can feel.
+By default, press <kbd>Right ⌘</kbd> + <kbd>Right ⌥</kbd>, tap a number, and keep going. Numpad turns the touch surface you already have into a numeric keypad, with an overlay to guide you and haptics you can feel.
 
 ## See it in action
 
@@ -54,11 +54,17 @@ Press <kbd>Right ⌘</kbd> + <kbd>Right ⌥</kbd>, tap a number, and keep going.
 
 On first launch, an interactive guide walks through permission, layout, the shortcut, and a safe typing practice. Reopen it anytime from **Getting Started…** in the menu bar. English and Korean can be selected inside the guide.
 
-> While the keypad is on, normal trackpad pointer movement and scrolling are blocked. Physical clicks and click-drag still work. Opening Settings turns the keypad off.
+> While the keypad is on, pointer movement, tap-to-click, scrolling, and gestures from selected trackpads are blocked when their source can be identified. Physical clicks and click-drag still work. Other trackpads and mice keep working normally. Opening Settings turns the keypad off.
 
 ## Settle into your layout
 
-Choose **Settings → General** to change the language or operator position. Drag the overlay to save its location, or use **Reset to Bottom Center** to start fresh.
+Choose **Settings → Keyboard** to record an activation shortcut or reset it to Right Command + Right Option. Custom shortcuts combine a key with Command, Option, or Control; Escape stays reserved for turning the keypad off.
+
+In the same tab, choose the left or right operator layout and select two keys to swap their positions. Slot sizes stay fixed, including the wide bottom key and tall side keys. Each side remembers its own arrangement, and the overlay and touch input update together.
+
+Choose **Settings → Trackpads** to select which connected trackpads act as keypads. You can select several at once; taps, calibration, and haptics are tracked per device. Unselected trackpads retain normal pointer movement, clicks, scrolling, and gestures. New devices start unselected. Connecting or disconnecting a trackpad safely turns the keypad off; press your shortcut to resume with the current selection.
+
+Choose **Settings → General** to change the language. Drag the overlay to save its location, or use **Reset to Bottom Center** to start fresh.
 
 Choose **Settings → Haptics** to decide which interactions you want to feel.
 
@@ -75,7 +81,7 @@ Enable **Settings → Experimental → Calibrate with Finger Positions** to move
 
 Optional four-finger calibration aligns the middle two fingers with `×` and `−`. Calibration is saved separately for left and right operator layouts, and can be kept between sessions or reset at any time. It is off by default.
 
-Calibration blocks conflicting macOS gestures and temporarily suspends trackpad/scroll zoom settings while active, restoring the previous values when the mode ends. Large adjustments can move keys beyond the trackpad area.
+Calibration filters identifiable events from selected trackpads. It does not change system-wide zoom settings. Calibration is saved per trackpad and key arrangement. Large adjustments can move keys beyond the trackpad area.
 
 <p align="center">
   <img src="docs/images/calibration-en.jpg" width="500" alt="Experimental finger calibration settings">
@@ -88,7 +94,7 @@ Calibration blocks conflicting macOS gestures and temporarily suspends trackpad/
 <details>
 <summary><strong>Why is the shortcut not working?</strong></summary>
 
-Use the **right-hand** Command and Option keys, without Shift or Control. Check Accessibility permission and the menu bar icon. Secure Input, sleep, permission loss, or a stopped input monitor turns keypad mode off.
+With the default shortcut, use the **right-hand** Command and Option keys, without Shift or Control. Check your shortcut in **Settings → Keyboard**, select at least one trackpad in **Trackpads**, and check Accessibility permission and the menu bar icon. Secure Input, sleep, permission loss, or a stopped input monitor turns keypad mode off.
 
 </details>
 
@@ -102,9 +108,9 @@ Yes. A stationary finger becomes an anchor after about 120 ms, letting another f
 <details>
 <summary><strong>What should I know about compatibility?</strong></summary>
 
-Numpad uses private Apple APIs for trackpad input, some haptics, and experimental zoom control. Compatibility may change with macOS updates. It uses the default trackpad; restart the app after changing connected trackpads.
+Numpad uses private Apple APIs for trackpad input, some haptics, and device attribution. Compatibility may change with macOS updates. Connected trackpads refresh automatically; changing connections turns keypad mode off safely. Device selection persists using a hardware serial number when available, with a device-ID fallback. A device whose identifier changes may need to be selected again.
 
-Physical clicks and tap-to-click are distinguished using pressure and contact timing. A pressureless external mouse used alongside trackpad touches may be treated as tap-to-click. Decimal input and keypad shortcuts follow the receiving app and input settings.
+Physical clicks and tap-to-click on selected trackpads are distinguished using pressure. Events with unknown or synthetic device origins pass through unchanged to avoid blocking other devices. Some system gestures or accessibility zoom may therefore still take effect when macOS does not expose their source. Decimal input and keypad shortcuts follow the receiving app and input settings.
 
 </details>
 

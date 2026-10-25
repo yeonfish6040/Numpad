@@ -33,11 +33,11 @@ public struct PadKey: Equatable, Identifiable, Sendable {
     ]
 
     // Hardware coordinates have their origin at the bottom left.
-    public static func at(x: Double, y: Double, layout: KeypadLayout = .right) -> PadKey? {
+    public static func at(x: Double, y: Double, layout: KeypadLayout = .right, keys: [PadKey]? = nil) -> PadKey? {
         guard x.isFinite, y.isFinite, (0...1).contains(x), (0...1).contains(y) else { return nil }
         let column = min(columnCount - 1, Int(x * Double(columnCount)))
         let row = min(rowCount - 1, Int((1 - y) * Double(rowCount)))
-        return layout.keys.first { column >= $0.column && column < $0.column + $0.columns &&
+        return (keys ?? layout.keys).first { column >= $0.column && column < $0.column + $0.columns &&
             row >= $0.row && row < $0.row + $0.rows }
     }
 }
@@ -73,7 +73,8 @@ public struct TapRecognizer {
     public var maximumDuration: Double = 0.45
     public var maximumTravel: Double = 0.055
     public var layout: KeypadLayout
-    public init(layout: KeypadLayout = .right) { self.layout = layout }
+    public var keys: [PadKey]?
+    public init(layout: KeypadLayout = .right, keys: [PadKey]? = nil) { self.layout = layout; self.keys = keys }
 
     public mutating func reset(waitForLift: Bool = false) {
         start = nil; key = nil; beganKey = nil; cancelled = waitForLift
@@ -90,7 +91,7 @@ public struct TapRecognizer {
         }
         guard touches.count == 1, !cancelled else { cancelled = true; return nil }
         let touch = touches[0]
-        guard let currentKey = PadKey.at(x: touch.x, y: touch.y, layout: layout) else { cancelled = true; return nil }
+        guard let currentKey = PadKey.at(x: touch.x, y: touch.y, layout: layout, keys: keys) else { cancelled = true; return nil }
         if let first = start {
             let distance = hypot(touch.x - first.x, touch.y - first.y)
             if touch.id != first.id || currentKey != key || distance > maximumTravel ||

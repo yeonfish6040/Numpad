@@ -1,8 +1,8 @@
 import Foundation
 import Darwin
 
-/// Accessibility screen zoom is handled outside ordinary application gestures.
-/// Use its own preference API so the accessibility daemon receives the change.
+/// Recover zoom preferences left in an older release's crash journal.
+/// New sessions never alter these global settings.
 final class ScreenZoomSuppression {
     private typealias Read = @convention(c) () -> Bool
     private typealias Write = @convention(c) (Bool) -> Void
@@ -32,16 +32,6 @@ final class ScreenZoomSuppression {
             originals = saved
             restore()
         }
-    }
-
-    func update(enabled: Bool) {
-        guard enabled else { restore(); return }
-        guard originals.isEmpty else { return }
-        for setting in settings { originals[setting.name] = setting.read() }
-        defaults.set(originals, forKey: journal)
-        defaults.synchronize()
-        for setting in settings where originals[setting.name] == true { setting.write(false) }
-        synchronize?()
     }
 
     func restore() {

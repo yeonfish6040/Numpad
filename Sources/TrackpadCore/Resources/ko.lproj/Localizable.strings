@@ -109,3 +109,34 @@
 "You have got it!" = "손에 익었네요!";
 "You will return here once access is granted" = "허용되면 이 창으로 자동으로 돌아옵니다";
 "Your trackpad, now a numpad." = "트랙패드가 숫자 키패드로";
+
+// Keyboard and per-device settings
+"Activation Shortcut" = "활성화 단축키";
+"Cancel" = "취소";
+"Record Shortcut" = "단축키 기록";
+"Reset" = "초기화";
+"Press a key with Command, Option, or Control. Esc cancels." = "Command, Option 또는 Control과 함께 키를 누르세요. Esc로 취소합니다.";
+"Use the shortcut to toggle your selected trackpads. Esc always turns the keypad off." = "단축키로 선택한 트랙패드의 숫자판을 켜거나 끕니다. Esc는 항상 숫자판을 끕니다.";
+"Include Command, Option, or Control and a non-modifier key. Esc is reserved." = "Command, Option 또는 Control과 일반 키를 조합하세요. Esc는 종료용입니다.";
+"Key Arrangement" = "키 배치";
+"Reset Layout" = "배치 초기화";
+"Select two keys to swap them. Slot sizes stay fixed. Each side remembers its own arrangement." = "두 키를 차례로 선택하면 위치를 서로 바꿉니다. 칸 크기는 유지하며, 왼쪽·오른쪽 배치를 따로 저장합니다.";
+"Keyboard" = "키보드";
+"Trackpads" = "트랙패드";
+"Use as Keypad" = "숫자판으로 사용";
+"Refresh Devices" = "장치 새로고침";
+"The activation shortcut toggles only the selected trackpads. Other trackpads keep their normal pointer, clicks, scrolling, and gestures." = "활성화 단축키는 선택한 트랙패드에만 적용됩니다. 나머지 트랙패드는 포인터 이동, 클릭, 스크롤, 제스처를 평소처럼 사용할 수 있습니다.";
+"Built-in Trackpad" = "내장 트랙패드";
+"Built-in" = "내장";
+"External" = "외장";
+"New trackpads stay off until selected. A connection change turns the keypad off safely; press the shortcut to resume. Selection is remembered for recognized devices." = "새 트랙패드는 직접 선택하기 전까지 숫자판으로 사용하지 않습니다. 연결 상태가 바뀌면 숫자판이 꺼지며, 단축키로 다시 켤 수 있습니다. 식별 가능한 장치는 선택을 기억합니다.";
+"Events whose source device cannot be identified pass through unchanged." = "출처 장치를 식별할 수 없는 입력은 차단하지 않습니다.";
+"Trackpad connections changed. Check your devices and turn the keypad on again." = "트랙패드 연결이 바뀌었습니다. 장치를 확인한 후 숫자판을 다시 켜세요.";
+"Select a trackpad in Settings before turning on the keypad." = "설정에서 숫자판으로 사용할 트랙패드를 먼저 선택하세요.";
+"Turn Keypad Off" = "숫자판 끄기";
+"Turn Keypad On" = "숫자판 켜기";
+"Press your activation shortcut." = "설정한 활성화 단축키를 누르세요.";
+"Defaults to On Touch. Drag with three or four fingers to move, rotate, and scale the layout live. Only events identified as coming from selected trackpads are blocked." = "기본값은 터치 시 적용입니다. 세 손가락이나 네 손가락으로 드래그해 배치의 위치·회전·크기를 조정합니다. 선택한 트랙패드에서 발생한 것으로 식별되는 입력만 차단합니다.";
+"Calibration is saved separately for each trackpad and key arrangement. Turn calibration off to use the uncalibrated layout." = "트랙패드와 키 배치별로 보정을 따로 저장합니다. 보정을 끄면 보정 전 배치를 사용합니다.";
+"Calibration Trackpad" = "보정할 트랙패드";
+"Right ⌘ + Right ⌥" = "오른쪽 ⌘ + 오른쪽 ⌥";

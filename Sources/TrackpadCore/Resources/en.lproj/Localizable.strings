@@ -109,3 +109,34 @@
 "You have got it!" = "You have got it!";
 "You will return here once access is granted" = "You will return here once access is granted";
 "Your trackpad, now a numpad." = "Your trackpad, now a numpad.";
+
+// Keyboard and per-device settings
+"Activation Shortcut" = "Activation Shortcut";
+"Cancel" = "Cancel";
+"Record Shortcut" = "Record Shortcut";
+"Reset" = "Reset";
+"Press a key with Command, Option, or Control. Esc cancels." = "Press a key with Command, Option, or Control. Esc cancels.";
+"Use the shortcut to toggle your selected trackpads. Esc always turns the keypad off." = "Use the shortcut to toggle your selected trackpads. Esc always turns the keypad off.";
+"Include Command, Option, or Control and a non-modifier key. Esc is reserved." = "Include Command, Option, or Control and a non-modifier key. Esc is reserved.";
+"Key Arrangement" = "Key Arrangement";
+"Reset Layout" = "Reset Layout";
+"Select two keys to swap them. Slot sizes stay fixed. Each side remembers its own arrangement." = "Select two keys to swap them. Slot sizes stay fixed. Each side remembers its own arrangement.";
+"Keyboard" = "Keyboard";
+"Trackpads" = "Trackpads";
+"Use as Keypad" = "Use as Keypad";
+"Refresh Devices" = "Refresh Devices";
+"The activation shortcut toggles only the selected trackpads. Other trackpads keep their normal pointer, clicks, scrolling, and gestures." = "The activation shortcut toggles only the selected trackpads. Other trackpads keep their normal pointer, clicks, scrolling, and gestures.";
+"Built-in Trackpad" = "Built-in Trackpad";
+"Built-in" = "Built-in";
+"External" = "External";
+"New trackpads stay off until selected. A connection change turns the keypad off safely; press the shortcut to resume. Selection is remembered for recognized devices." = "New trackpads stay off until selected. A connection change turns the keypad off safely; press the shortcut to resume. Selection is remembered for recognized devices.";
+"Events whose source device cannot be identified pass through unchanged." = "Events whose source device cannot be identified pass through unchanged.";
+"Trackpad connections changed. Check your devices and turn the keypad on again." = "Trackpad connections changed. Check your devices and turn the keypad on again.";
+"Select a trackpad in Settings before turning on the keypad." = "Select a trackpad in Settings before turning on the keypad.";
+"Turn Keypad Off" = "Turn Keypad Off";
+"Turn Keypad On" = "Turn Keypad On";
+"Press your activation shortcut." = "Press your activation shortcut.";
+"Defaults to On Touch. Drag with three or four fingers to move, rotate, and scale the layout live. Only events identified as coming from selected trackpads are blocked." = "Defaults to On Touch. Drag with three or four fingers to move, rotate, and scale the layout live. Only events identified as coming from selected trackpads are blocked.";
+"Calibration is saved separately for each trackpad and key arrangement. Turn calibration off to use the uncalibrated layout." = "Calibration is saved separately for each trackpad and key arrangement. Turn calibration off to use the uncalibrated layout.";
+"Calibration Trackpad" = "Calibration Trackpad";
+"Right ⌘ + Right ⌥" = "Right ⌘ + Right ⌥";

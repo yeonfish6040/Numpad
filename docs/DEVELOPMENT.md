@@ -20,7 +20,7 @@ The default build targets the current Mac architecture and uses an ad hoc signat
 | --- | --- |
 | `Sources/CTrackpad` | Load MultitouchSupport, receive normalized touch coordinates, drive haptics |
 | `Sources/TrackpadCore` | Key mapping, tap recognition, anchors, calibration, overlay placement and snapping, localization |
-| `Sources/TrackpadNumpad` | Input monitoring, right-hand shortcut, menu bar, SwiftUI settings and overlay |
+| `Sources/TrackpadNumpad` | Per-device input monitoring, configurable shortcut, menu bar, SwiftUI settings and overlay |
 | `Tests/TrackpadCoreTests` | Input behavior, calibration, placement, snapping, language defaults and translation catalogs |
 | `scripts/build-app.sh` | App bundle, localization resources, icon generation, signing |
 | `scripts/build-dmg.sh` | Universal DMG, Applications shortcut, optional notarization, SHA-256 checksums |
@@ -40,7 +40,7 @@ dist/Numpad.app/Contents/MacOS/TrackpadNumpad --check-localization
 ## Diagnostics
 
 ```sh
-# Framework availability, default trackpad, Accessibility, stream start and stop
+# Framework availability, connected trackpads, registry attribution, Accessibility, stream start and stop
 dist/Numpad.app/Contents/MacOS/TrackpadNumpad --diagnose
 
 # Start with Settings visible
@@ -65,7 +65,7 @@ The setup guide opens automatically on first launch. Completion or dismissal sav
 - A valid tap lasts 25–450 ms and types once on release. Swipes, long holds, and extra typing contacts cancel it.
 - A stationary contact becomes an anchor after about 120 ms. When two contacts land together, a contact near the center of `5` can anchor immediately. Movement of the anchor by normalized distance 0.08 or its release cancels the current tap until all fingers lift.
 - The center detent for `5` uses an ellipse in key-relative coordinates: entry radius 3.5%, exit radius 5.5%. This hysteresis avoids repeated haptics from boundary noise. Landing directly at the center and lifting off are not crossing events.
-- Pressure-zero clicks during or within 250 ms of trackpad contact are classified as tap-to-click and blocked. Physical click down/drag/up are paired and allowed while cancelling the current numeric tap.
+- Pointer suppression uses Quartz sender field 87, resolved through IORegistry to the Multitouch ID. Only selected device IDs are filtered. Unknown/synthetic senders pass through; contact timing is never used to infer a device. Click pairing and three-finger drag suppression are independent per device. Pressure-zero clicks on selected devices are classified as tap-to-click; physical clicks pass while cancelling that device’s numeric tap.
 - A new confirmed input cancels the previous highlight clear task. Highlighting turns on immediately, stays for 160 ms after the latest input, then fades over 80 ms. Reduce Motion disables the fade.
 - Three-finger calibration uses `4·5·6`, anchoring `5` to the middle finger. Four-finger calibration uses the middle contacts at `×·−`. Both preserve key proportions through translation, rotation, and uniform scale.
 
@@ -91,7 +91,13 @@ Without signing credentials, `bash scripts/build-dmg.sh` produces a local test D
 
 ## Platform notes
 
-MultitouchSupport and some actuator/UniversalAccess calls are private Apple APIs. This project does not target App Store distribution. Trackpad hot-plugging is unsupported. Zoom preferences are restored on mode exit and application termination; after an abnormal exit, recovery happens at the next launch.
+MultitouchSupport, actuators, Quartz sender field 87, and legacy UniversalAccess recovery calls are private Apple APIs. This project does not target App Store distribution. Devices are enumerated with `MTDeviceCreateList` and matched to HID touchpad usage/acceleration in IORegistry, excluding Magic Mouse and Touch Bar. Connection changes are detected by polling once a second, close onboarding practice, and safely disable keypad mode before refreshing the list. Selection uses a built-in identifier or external serial number when available, with a Multitouch-ID fallback. Identifiers can change on reconnect for devices without stable serial numbers.
+
+Each selected trackpad has independent tap, center feedback, calibration gesture, and transform state, including overlapping contact IDs across devices. Haptics target the touch device. The overlay shows the latest device to send a frame. Calibration is stored per device, operator side, and key permutation. Default built-in calibration migrates from the old preference key.
+
+No new session alters global screen/scroll zoom preferences. Startup only recovers an old release’s pending restoration journal. Events that cannot be attributed to a selected device pass through, so system gestures/zoom that lack source attribution may still activate. Two-trackpad hardware validation is required before claiming full device/OS compatibility.
+
+`Keyboard` settings record a modifier-plus-key shortcut, retain the original right Command/Option chord as the default, and keep Escape reserved. A custom activation key’s down/repeat/up are consumed, and recording suspends global activation. Key arrangements are validated permutations of the 17 existing outputs over fixed slots; each operator side persists separately. Overlay rendering, hit testing, center feedback, and calibration consume the same arranged keys.
 
 Signing identity or installation location changes can affect Accessibility permissions. If access fails after a local rebuild, remove and re-add the app in System Settings.
 
@@ -102,3 +108,5 @@ Signing identity or installation location changes can affect Accessibility permi
 - [Actuator example](https://gist.github.com/niw/b120b460e854ec10cefeeb60784f5dbb)
 - [Apple CGEvent](https://developer.apple.com/documentation/coregraphics/cgevent)
 - [Apple haptics](https://developer.apple.com/documentation/appkit/nshapticfeedbackperformer)
+
+- [Quartz sender attribution reference](https://github.com/noah-nuebling/mac-mouse-fix/blob/master/Helper/Utility/EventUtility.m)
