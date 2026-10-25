@@ -110,3 +110,7 @@ Signing identity or installation location changes can affect Accessibility permi
 - [Apple haptics](https://developer.apple.com/documentation/appkit/nshapticfeedbackperformer)
 
 - [Quartz sender attribution reference](https://github.com/noah-nuebling/mac-mouse-fix/blob/master/Helper/Utility/EventUtility.m)
+
+## Launch at login
+
+General settings use macOS 13+ `SMAppService.mainApp` to register or unregister the signed app. The switch reads the service status on appearance and whenever Numpad becomes active, including changes made in System Settings. Pending approval displays an explanation and a button to open Login Items. Failed changes display the system error and retain the actual service state. No registration happens on startup or during diagnostics; only the user’s toggle changes registration. Bare SwiftPM executables disable this setting. Login launch leaves keypad mode off.

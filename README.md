@@ -64,6 +64,8 @@ In the same tab, choose the left or right operator layout and select two keys to
 
 Choose **Settings → Trackpads** to select which connected trackpads act as keypads. You can select several at once; taps, calibration, and haptics are tracked per device. Unselected trackpads retain normal pointer movement, clicks, scrolling, and gestures. New devices start unselected. Connecting or disconnecting a trackpad safely turns the keypad off; press your shortcut to resume with the current selection.
 
+Choose **Settings → General → Launch at Login** to start Numpad in the menu bar when you log in. It starts with the keypad off. If macOS requires approval, use **Open Login Items Settings** to allow it. Turn the switch off to remove the login item.
+
 Choose **Settings → General** to change the language. Drag the overlay to save its location, or use **Reset to Bottom Center** to start fresh.
 
 Choose **Settings → Haptics** to decide which interactions you want to feel.

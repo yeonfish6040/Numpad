@@ -179,6 +179,8 @@ struct SettingsView: View {
                     .frame(width: 160)
                 }
                 Divider()
+            LoginItemSettings()
+            Divider()
             HStack {
                 Text(L("Overlay Position")).font(.system(size: 12))
                 Spacer()

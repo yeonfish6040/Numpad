@@ -140,3 +140,11 @@
 "Calibration is saved separately for each trackpad and key arrangement. Turn calibration off to use the uncalibrated layout." = "Calibration is saved separately for each trackpad and key arrangement. Turn calibration off to use the uncalibrated layout.";
 "Calibration Trackpad" = "Calibration Trackpad";
 "Right ⌘ + Right ⌥" = "Right ⌘ + Right ⌥";
+
+// Launch at login
+"Launch at Login" = "Launch at Login";
+"Start Numpad in the menu bar when you log in. The keypad stays off until you activate it." = "Start Numpad in the menu bar when you log in. The keypad stays off until you activate it.";
+"Open the installed Numpad app to configure launch at login." = "Open the installed Numpad app to configure launch at login.";
+"Allow Numpad in System Settings → General → Login Items to finish enabling launch at login." = "Allow Numpad in System Settings → General → Login Items to finish enabling launch at login.";
+"Open Login Items Settings" = "Open Login Items Settings";
+"Could not update launch at login." = "Could not update launch at login.";

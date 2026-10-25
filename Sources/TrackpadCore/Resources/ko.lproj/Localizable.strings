@@ -140,3 +140,11 @@
 "Calibration is saved separately for each trackpad and key arrangement. Turn calibration off to use the uncalibrated layout." = "트랙패드와 키 배치별로 보정을 따로 저장합니다. 보정을 끄면 보정 전 배치를 사용합니다.";
 "Calibration Trackpad" = "보정할 트랙패드";
 "Right ⌘ + Right ⌥" = "오른쪽 ⌘ + 오른쪽 ⌥";
+
+// Launch at login
+"Launch at Login" = "로그인 시 실행";
+"Start Numpad in the menu bar when you log in. The keypad stays off until you activate it." = "로그인할 때 메뉴 막대에서 Numpad를 실행합니다. 직접 활성화하기 전까지 숫자판은 꺼진 상태로 유지합니다.";
+"Open the installed Numpad app to configure launch at login." = "설치된 Numpad 앱을 열어 로그인 시 실행을 설정하세요.";
+"Allow Numpad in System Settings → General → Login Items to finish enabling launch at login." = "시스템 설정 → 일반 → 로그인 항목에서 Numpad를 허용하면 로그인 시 실행 설정이 완료됩니다.";
+"Open Login Items Settings" = "로그인 항목 설정 열기";
+"Could not update launch at login." = "로그인 시 실행 설정을 변경하지 못했습니다.";
