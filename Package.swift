@@ -11,6 +11,7 @@ let package = Package(
         .target(name: "TrackpadCore", resources: [.process("Resources")]),
         .executableTarget(name: "TrackpadNumpad", dependencies: ["CTrackpad", "TrackpadCore"],
                           linkerSettings: [.linkedFramework("Carbon")]),
-        .testTarget(name: "TrackpadCoreTests", dependencies: ["TrackpadCore"])
+        .testTarget(name: "TrackpadCoreTests", dependencies: ["TrackpadCore"]),
+        .testTarget(name: "TrackpadNumpadTests", dependencies: ["TrackpadNumpad"])
     ]
 )

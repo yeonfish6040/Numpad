@@ -33,7 +33,7 @@ final class OnboardingModel: ObservableObject {
     var onFinish: (() -> Void)?
     var onFocus: (() -> Void)?
     private var monitor: Any?
-    private var chord = RightModifierChord()
+    private var chord = ModifierShortcutMatcher()
     private var stream: TouchStream?
     private let input = InputService()
     private var recognizer = AnchoredTapRecognizer()
@@ -128,14 +128,14 @@ final class OnboardingModel: ObservableObject {
 
     /// Device-dependent modifier bits from IOLLEvent.h distinguish left and right keys.
     private func flagsChanged(_ flags: UInt64) {
-        guard app.activationShortcut.isDefault else { return }
+        guard app.activationShortcut.isModifierOnly else { return }
         let wasLeft = leftCommand && leftOption
         withAnimation(.spring(response: 0.18, dampingFraction: 0.6)) {
             rightCommand = flags & 0x10 != 0; rightOption = flags & 0x40 != 0
             leftCommand = flags & 0x08 != 0; leftOption = flags & 0x20 != 0
         }
-        if leftCommand && leftOption && !wasLeft && !shortcutDone { wrongSide += 1 }
-        if chord.update(flags: flags) { shortcutPressed() }
+        if app.activationShortcut.isDefault && leftCommand && leftOption && !wasLeft && !shortcutDone { wrongSide += 1 }
+        if chord.update(flags: flags, shortcut: app.activationShortcut) { shortcutPressed() }
     }
 
     /// Also called from the global activation shortcut while onboarding is open.
@@ -532,7 +532,7 @@ private struct ShortcutStep: View {
                 if model.shortcutDone {
                     Label(L("Got it! You can now turn on the keypad in any app."), systemImage: "checkmark.circle.fill")
                         .foregroundStyle(mint)
-                } else if model.leftCommand || model.leftOption {
+                } else if model.app.activationShortcut.isDefault && (model.leftCommand || model.leftOption) {
                     Label(L("Those are the left keys. Try the right ⌘ and ⌥ keys."), systemImage: "hand.point.right.fill")
                         .foregroundStyle(.orange)
                 } else {

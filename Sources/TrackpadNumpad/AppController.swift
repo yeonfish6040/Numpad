@@ -49,6 +49,12 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
             if item != nil { updateMenu() }
         }
     }
+    @Published private(set) var shortcutProblem: String?
+    func setActivationShortcut(_ shortcut: TrackpadCore.KeyboardShortcut) -> String? {
+        if let problem = ShortcutAvailability.problem(shortcut) { return problem }
+        activationShortcut = shortcut
+        return nil
+    }
     var recordingShortcut = false { didSet { optionShortcut.suspended = recordingShortcut } }
     var shortcutTitle: String { activationShortcut.displayName }
     @Published private(set) var trackpads: [TrackpadDevice] = []
@@ -180,6 +186,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         // change system-wide zoom preferences, which affect unselected devices.
         _ = ScreenZoomSuppression()
         refreshTrackpads()
+        optionShortcut.onProblem = { [weak self] in self?.shortcutProblem = $0 }
         optionShortcut.configuration = activationShortcut
         deviceReady = TPInitialize()
         if !deviceReady { messageText = LocalizedMessage(String(cString: TPError())) }
@@ -208,6 +215,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
         ) { [weak self] notification in
+            self?.optionShortcut.refreshAvailability()
             if let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
                app.processIdentifier != ProcessInfo.processInfo.processIdentifier { self?.previousApp = app }
             if let panel = self?.panel, panel.isVisible, panel.alphaValue > 0.01 {

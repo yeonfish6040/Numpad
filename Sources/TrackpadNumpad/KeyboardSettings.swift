@@ -5,7 +5,13 @@ import TrackpadCore
 
 extension TrackpadCore.KeyboardShortcut {
     var displayName: String {
-        guard let keyCode else { return L("Right ⌘ + Right ⌥") }
+        guard let keyCode else {
+            if isDefault { return L("Right ⌘ + Right ⌥") }
+            let keys: [(UInt64, String)] = [(1, L("Left ⌃")), (0x2000, L("Right ⌃")),
+                (2, L("Left ⇧")), (4, L("Right ⇧")), (8, L("Left ⌘")), (16, L("Right ⌘")),
+                (32, L("Left ⌥")), (64, L("Right ⌥"))]
+            return keys.filter { chordBits & $0.0 != 0 }.map(\.1).joined(separator: " + ")
+        }
         let symbols = [(UInt64(0x40000), "⌃"), (0x80000, "⌥"), (0x20000, "⇧"), (0x100000, "⌘")]
         return symbols.filter { modifiers & $0.0 != 0 }.map(\.1).joined() + Self.keyName(keyCode)
     }
@@ -33,50 +39,157 @@ extension TrackpadCore.KeyboardShortcut {
     }
 }
 
+/// Monitor lifetime belongs to an object, not a SwiftUI value captured before
+/// a redraw. A HID tap captures Command-key equivalents before menus or other
+/// apps consume them; a local monitor also supports recording without AX access.
+final class ShortcutRecorder: ObservableObject {
+    @Published private(set) var isRecording = false
+    @Published private(set) var preview: TrackpadCore.KeyboardShortcut?
+    @Published private(set) var problem: String?
+    private var state = ShortcutRecording()
+    private var tap: CFMachPort?
+    private var source: CFRunLoopSource?
+    private var monitor: Any?
+    private weak var window: NSWindow?
+    private var pending: TrackpadCore.KeyboardShortcut?
+    private var completing = false
+    private var revision = 0
+    var onRecordingChange: ((Bool) -> Void)?
+    var onCandidate: ((TrackpadCore.KeyboardShortcut) -> String?)?
+
+    func start() {
+        stop()
+        window = NSApp.keyWindow
+        guard window != nil else { return }
+        state = ShortcutRecording(initialFlags: UInt64(NSEvent.modifierFlags.rawValue))
+        problem = nil; preview = nil; pending = nil; completing = false
+        isRecording = true
+        onRecordingChange?(true)
+        let mask = [CGEventType.flagsChanged, .keyDown, .keyUp].reduce(CGEventMask(0)) { $0 | (CGEventMask(1) << $1.rawValue) }
+        if let port = CGEvent.tapCreate(tap: .cghidEventTap, place: .headInsertEventTap,
+            options: .defaultTap, eventsOfInterest: mask, callback: { _, type, event, context in
+                guard let context else { return Unmanaged.passUnretained(event) }
+                let recorder = Unmanaged<ShortcutRecorder>.fromOpaque(context).takeUnretainedValue()
+                if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+                    DispatchQueue.main.async { recorder.stop() }
+                    return Unmanaged.passUnretained(event)
+                }
+                guard NSApp.isActive, recorder.window?.isKeyWindow == true else {
+                    DispatchQueue.main.async { recorder.stop() }
+                    return Unmanaged.passUnretained(event)
+                }
+                recorder.receive(type: type, code: UInt16(truncatingIfNeeded: event.getIntegerValueField(.keyboardEventKeycode)),
+                    flags: event.flags.rawValue, isRepeat: event.getIntegerValueField(.keyboardEventAutorepeat) != 0)
+                return type == .flagsChanged ? Unmanaged.passUnretained(event) : nil
+            }, userInfo: Unmanaged.passUnretained(self).toOpaque()) {
+            if let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, port, 0) {
+                self.tap = port; self.source = source
+                CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
+                CGEvent.tapEnable(tap: port, enable: true)
+            } else {
+                CFMachPortInvalidate(port)
+            }
+        }
+        // Keep the local path alongside the HID tap: remote keyboards and
+        // assistive input can deliver events above the HID tap. Physical key
+        // events consumed by the tap never reach this monitor; duplicate flag
+        // changes are harmless and completion is latched.
+        monitor = NSEvent.addLocalMonitorForEvents(matching: [.flagsChanged, .keyDown, .keyUp]) { [weak self] event in
+            guard let self, self.isRecording, self.window?.isKeyWindow == true else { return event }
+            let type: CGEventType = event.type == .flagsChanged ? .flagsChanged : (event.type == .keyDown ? .keyDown : .keyUp)
+            self.receive(type: type, code: event.keyCode, flags: UInt64(event.modifierFlags.rawValue),
+                         isRepeat: event.type == .keyDown && event.isARepeat)
+            return type == .flagsChanged ? event : nil
+        }
+    }
+
+    private func receive(type: CGEventType, code: UInt16, flags: UInt64, isRepeat: Bool) {
+        guard isRecording, !completing else { return }
+        if type == .keyUp {
+            if let pending, pending.keyCode == code { self.pending = nil; complete(.candidate(pending)) }
+            return
+        }
+        let result = type == .flagsChanged ? state.flagsChanged(flags) : state.keyDown(code: code, flags: flags, isRepeat: isRepeat)
+        preview = pending ?? state.preview
+        guard let result else { return }
+        if case .candidate(let shortcut) = result, !shortcut.isModifierOnly {
+            pending = shortcut; preview = shortcut
+        } else { complete(result) }
+    }
+
+    private func complete(_ result: ShortcutRecording.Result) {
+        completing = true
+        let session = revision
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.isRecording, self.revision == session else { return }
+            self.completing = false
+            switch result {
+            case .cancelled: self.stop()
+            case .invalid:
+                self.problem = L("Use two modifier keys, or a key with Command, Option, or Control. Esc cancels.")
+                self.state = ShortcutRecording(initialFlags: UInt64(NSEvent.modifierFlags.rawValue))
+                self.preview = nil
+            case .candidate(let shortcut):
+                if let problem = self.onCandidate?(shortcut) {
+                    self.problem = problem
+                    self.state = ShortcutRecording(initialFlags: UInt64(NSEvent.modifierFlags.rawValue))
+                    self.preview = nil
+                }
+                else { self.stop() }
+            }
+        }
+    }
+
+    func stop() {
+        revision += 1
+        problem = nil
+        if let tap { CGEvent.tapEnable(tap: tap, enable: false); CFMachPortInvalidate(tap) }
+        if let source { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes) }
+        if let monitor { NSEvent.removeMonitor(monitor) }
+        tap = nil; source = nil; monitor = nil; window = nil
+        pending = nil; preview = nil; completing = false
+        if isRecording { isRecording = false; onRecordingChange?(false) }
+    }
+    deinit { stop() }
+}
+
 struct ShortcutSettings: View {
     @ObservedObject var model: AppController
-    @State private var recording = false
-    @State private var monitor: Any?
-    @State private var invalid = false
+    @StateObject private var recorder = ShortcutRecorder()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(L("Activation Shortcut")).font(.headline)
             HStack {
-                Text(model.shortcutTitle).font(.system(.body, design: .monospaced))
+                Text(recorder.preview?.displayName ?? model.shortcutTitle).font(.system(.body, design: .monospaced))
                     .padding(.horizontal, 12).padding(.vertical, 8)
                     .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
                 Spacer()
-                Button(recording ? L("Cancel") : L("Record Shortcut")) {
-                    if recording { stop() } else { start() }
+                Button(recorder.isRecording ? L("Cancel") : L("Record Shortcut")) {
+                    if recorder.isRecording { recorder.stop() }
+                    else {
+                        recorder.onRecordingChange = { [weak target = model] in target?.recordingShortcut = $0 }
+                        recorder.onCandidate = { [weak target = model] in target?.setActivationShortcut($0) }
+                        recorder.start()
+                    }
                 }
-                Button(L("Reset")) { stop(); model.activationShortcut = .default }
-                    .disabled(model.activationShortcut.isDefault && !recording)
+                Button(L("Reset")) { recorder.stop(); model.activationShortcut = .default }
+                    .disabled(model.activationShortcut.isDefault && !recorder.isRecording)
             }
-            Text(L(recording ? "Press a key with Command, Option, or Control. Esc cancels." : "Use the shortcut to toggle your selected trackpads. Esc always turns the keypad off."))
+            Text(L(recorder.isRecording ? "Press and release your shortcut. Use two modifier keys, or a key with Command, Option, or Control. Esc cancels." : "Use the shortcut to toggle your selected trackpads. Esc always turns the keypad off."))
                 .font(.system(size: 11)).foregroundStyle(.secondary)
-            if invalid {
-                Text(L("Include Command, Option, or Control and a non-modifier key. Esc is reserved."))
-                    .font(.system(size: 11)).foregroundStyle(.orange)
+            if let problem = recorder.problem ?? model.shortcutProblem {
+                Text(problem).font(.system(size: 11)).foregroundStyle(.orange)
             }
+            Text(L("macOS shortcuts and registered global shortcuts are checked. Some app-specific shortcuts and modifier-only shortcuts cannot be checked."))
+                .font(.system(size: 10)).foregroundStyle(.secondary)
         }
-        .onDisappear { stop() }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { _ in stop() }
-    }
-    private func start() {
-        recording = true; invalid = false; model.recordingShortcut = true
-        monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            if event.keyCode == 53 { stop(); return nil }
-            let candidate = TrackpadCore.KeyboardShortcut(keyCode: event.keyCode, modifiers: UInt64(event.modifierFlags.rawValue))
-            guard candidate.isValid else { invalid = true; return nil }
-            model.activationShortcut = candidate
-            stop()
-            return nil
+        .onDisappear { recorder.stop() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in recorder.stop() }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { notification in
+            // Ignore notifications from unrelated panels and applications.
+            if let window = notification.object as? NSWindow, window.title == L("Numpad Settings") { recorder.stop() }
         }
-    }
-    private func stop() {
-        if let monitor { NSEvent.removeMonitor(monitor) }
-        monitor = nil; recording = false; model.recordingShortcut = false
     }
 }
 

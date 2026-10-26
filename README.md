@@ -58,7 +58,7 @@ On first launch, an interactive guide walks through permission, layout, the shor
 
 ## Settle into your layout
 
-Choose **Settings → Keyboard** to record an activation shortcut or reset it to Right Command + Right Option. Custom shortcuts combine a key with Command, Option, or Control; Escape stays reserved for turning the keypad off.
+Choose **Settings → Keyboard** to record an activation shortcut or reset it to Right Command + Right Option. Press and release either two or more modifier keys (with left/right sides remembered), or a key with Command, Option, or Control. Escape stays reserved for turning the keypad off. The recorder checks enabled macOS shortcuts and registered global hotkeys, rejects detected conflicts, and keeps your previous shortcut until a valid replacement is recorded. Some app-internal shortcuts and modifier-only shortcuts cannot be checked for conflicts.
 
 In the same tab, choose the left or right operator layout and select two keys to swap their positions. Slot sizes stay fixed, including the wide bottom key and tall side keys. Each side remembers its own arrangement, and the overlay and touch input update together.
 

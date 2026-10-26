@@ -148,3 +148,18 @@
 "Allow Numpad in System Settings → General → Login Items to finish enabling launch at login." = "Allow Numpad in System Settings → General → Login Items to finish enabling launch at login.";
 "Open Login Items Settings" = "Open Login Items Settings";
 "Could not update launch at login." = "Could not update launch at login.";
+
+// Shortcut recording and availability
+"Left ⌃" = "Left ⌃";
+"Right ⌃" = "Right ⌃";
+"Left ⇧" = "Left ⇧";
+"Right ⇧" = "Right ⇧";
+"Left ⌘" = "Left ⌘";
+"Right ⌘" = "Right ⌘";
+"Left ⌥" = "Left ⌥";
+"Right ⌥" = "Right ⌥";
+"Use two modifier keys, or a key with Command, Option, or Control. Esc cancels." = "Use two modifier keys, or a key with Command, Option, or Control. Esc cancels.";
+"Press and release your shortcut. Use two modifier keys, or a key with Command, Option, or Control. Esc cancels." = "Press and release your shortcut. Use two modifier keys, or a key with Command, Option, or Control. Esc cancels.";
+"This shortcut is assigned in macOS Keyboard Shortcuts. Choose another combination." = "This shortcut is assigned in macOS Keyboard Shortcuts. Choose another combination.";
+"This shortcut is unavailable or registered by another app. Choose another combination." = "This shortcut is unavailable or registered by another app. Choose another combination.";
+"macOS shortcuts and registered global shortcuts are checked. Some app-specific shortcuts and modifier-only shortcuts cannot be checked." = "macOS shortcuts and registered global shortcuts are checked. Some app-specific shortcuts and modifier-only shortcuts cannot be checked.";

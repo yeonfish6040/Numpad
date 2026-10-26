@@ -28,7 +28,7 @@ cat > "$bundle/Contents/Info.plist" <<'PLIST'
     <key>CFBundleExecutable</key><string>TrackpadNumpad</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>0.0.4</string>
-    <key>CFBundleVersion</key><string>5</string>
+    <key>CFBundleVersion</key><string>6</string>
     <key>CFBundleDevelopmentRegion</key><string>en</string>
     <key>CFBundleLocalizations</key><array><string>en</string><string>ko</string></array>
     <key>CFBundleIconFile</key><string>AppIcon</string>

@@ -187,58 +187,80 @@ final class InputService {
 final class ActivationShortcut {
     private var tap: CFMachPort?
     private var source: CFRunLoopSource?
-    private var chord = RightModifierChord()
-    private var consumedKey: UInt16?
+    private var chord = ModifierShortcutMatcher()
+    private var hotKey: EventHotKeyRef?
+    private var handler: EventHandlerRef?
+    private var started = false
     var action: (() -> Void)?
-    var suspended = false { didSet { chord.reset() } }
-    var configuration = KeyboardShortcut.default { didSet { chord.reset() } }
+    var onProblem: ((String?) -> Void)?
+    var suspended = false { didSet { chord.reset(); updateRegistration() } }
+    var configuration = KeyboardShortcut.default { didSet { chord.reset(); updateRegistration() } }
+
+    private func updateRegistration() {
+        if let hotKey { UnregisterEventHotKey(hotKey) }
+        hotKey = nil
+        guard started, !suspended else { return }
+        guard let code = configuration.keyCode else { onProblem?(nil); return }
+        if ShortcutAvailability.systemConflict(configuration) {
+            onProblem?(L("This shortcut is assigned in macOS Keyboard Shortcuts. Choose another combination."))
+            return
+        }
+        let result = RegisterEventHotKey(UInt32(code), ShortcutAvailability.carbonModifiers(configuration),
+            EventHotKeyID(signature: 0x4E506164, id: 1), GetApplicationEventTarget(),
+            UInt32(kEventHotKeyExclusive), &hotKey)
+        onProblem?(result == noErr ? nil : L("This shortcut is unavailable or registered by another app. Choose another combination.") + " (\(result))")
+    }
+
+    func refreshAvailability() {
+        guard started, !suspended, !configuration.isModifierOnly else { return }
+        if hotKey == nil || ShortcutAvailability.systemConflict(configuration) { updateRegistration() }
+    }
 
     func start() {
-        guard tap == nil, AXIsProcessTrusted() else { return }
+        guard !started, AXIsProcessTrusted() else { return }
+        var event = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
+        guard InstallEventHandler(GetApplicationEventTarget(), { _, event, context in
+            guard let context, let event else { return OSStatus(eventNotHandledErr) }
+            let shortcut = Unmanaged<ActivationShortcut>.fromOpaque(context).takeUnretainedValue()
+            var identifier = EventHotKeyID()
+            guard GetEventParameter(event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID),
+                nil, MemoryLayout<EventHotKeyID>.size, nil, &identifier) == noErr,
+                identifier.signature == 0x4E506164, identifier.id == 1 else { return OSStatus(eventNotHandledErr) }
+            if !shortcut.suspended { shortcut.action?() }
+            return noErr
+        }, 1, &event, Unmanaged.passUnretained(self).toOpaque(), &handler) == noErr else { return }
         guard let port = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .headInsertEventTap,
-            options: .defaultTap, eventsOfInterest: [CGEventType.flagsChanged, .keyDown, .keyUp]
-                .reduce(CGEventMask(0)) { $0 | (CGEventMask(1) << $1.rawValue) },
+            options: .listenOnly, eventsOfInterest: CGEventMask(1) << CGEventType.flagsChanged.rawValue,
             callback: { _, type, event, context in
                 guard let context else { return Unmanaged.passUnretained(event) }
                 let shortcut = Unmanaged<ActivationShortcut>.fromOpaque(context).takeUnretainedValue()
                 if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
                     shortcut.chord.reset()
-                    shortcut.consumedKey = nil
                     if let tap = shortcut.tap { CGEvent.tapEnable(tap: tap, enable: true) }
-                } else if !shortcut.suspended {
-                    let code = UInt16(truncatingIfNeeded: event.getIntegerValueField(.keyboardEventKeycode))
-                    if (type == .keyDown || type == .keyUp), shortcut.consumedKey == code {
-                        if type == .keyUp { shortcut.consumedKey = nil }
-                        return nil
-                    }
-                    let activate: Bool
-                    if shortcut.configuration.isDefault {
-                        activate = type == .flagsChanged && shortcut.chord.update(flags: event.flags.rawValue)
-                    } else {
-                        activate = type == .keyDown && shortcut.configuration.matches(
-                            keyCode: code,
-                            flags: event.flags.rawValue, isRepeat: event.getIntegerValueField(.keyboardEventAutorepeat) != 0)
-                    }
-                    if activate {
-                        DispatchQueue.main.async { if !shortcut.suspended { shortcut.action?() } }
-                        if type == .keyDown { shortcut.consumedKey = code; return nil }
-                    }
+                } else if !shortcut.suspended, shortcut.configuration.isModifierOnly,
+                          shortcut.chord.update(flags: event.flags.rawValue, shortcut: shortcut.configuration) {
+                    DispatchQueue.main.async { if !shortcut.suspended { shortcut.action?() } }
                 }
                 return Unmanaged.passUnretained(event)
-            }, userInfo: Unmanaged.passUnretained(self).toOpaque()) else { return }
-        guard let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, port, 0) else {
-            CFMachPortInvalidate(port); return
+            }, userInfo: Unmanaged.passUnretained(self).toOpaque()),
+              let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, port, 0) else {
+            if let handler { RemoveEventHandler(handler) }; handler = nil
+            return
         }
         self.tap = port; self.source = source
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: port, enable: true)
+        started = true
+        updateRegistration()
     }
 
     func stop() {
+        started = false
+        if let hotKey { UnregisterEventHotKey(hotKey) }; hotKey = nil
+        if let handler { RemoveEventHandler(handler) }; handler = nil
         if let tap { CFMachPortInvalidate(tap) }
         if let source { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes) }
-        tap = nil; source = nil; chord.reset(); consumedKey = nil
+        tap = nil; source = nil; chord.reset()
     }
     deinit { stop() }
 }
-
