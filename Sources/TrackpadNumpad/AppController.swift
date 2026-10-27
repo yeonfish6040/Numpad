@@ -59,6 +59,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
     var recordingShortcut = false { didSet { optionShortcut.suspended = recordingShortcut } }
     var shortcutTitle: String { activationShortcut.displayName }
     @Published private(set) var trackpads: [TrackpadDevice] = []
+    private(set) var activeInputDeviceIDs = Set<UInt64>()
     @Published private(set) var enabledTrackpads = Set(UserDefaults.standard.stringArray(forKey: "enabledTrackpads") ?? [])
     @Published private(set) var currentDeviceID: UInt64 = 0
     private struct DeviceSession {
@@ -83,7 +84,9 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
     }
 
     func refreshTrackpads() {
-        if enabled { disable() }
+        let resumeActivityMonitor = settingsWindow?.isVisible == true
+        stopDeviceActivityMonitor()
+        if enabled { disable(resumeActivityMonitor: false) }
         trackpads = TrackpadDevice.connected(refresh: true)
         deviceReady = !trackpads.isEmpty
         // Keep the original single-device experience on first use. Devices
@@ -94,6 +97,39 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         }
         currentDeviceID = selectedDeviceIDs.first ?? trackpads.first?.id ?? 0
         configurationChanged()
+        if resumeActivityMonitor { startDeviceActivityMonitor() }
+    }
+
+    private func startDeviceActivityMonitor() {
+        guard settingsWindow?.isVisible == true, !enabled, deviceActivityMonitor == nil,
+              !trackpads.isEmpty, TPInitialize() else { return }
+        let monitor = TouchStream(deviceIDs: trackpads.map(\.id)) { [weak self] deviceID, touches, _ in
+            guard let self, self.settingsWindow?.isVisible == true, !self.enabled else { return }
+            self.updateInputActivity(deviceID, active: !touches.isEmpty)
+        }
+        guard monitor.start() else { return }
+        deviceActivityMonitor = monitor
+    }
+
+    private func stopDeviceActivityMonitor() {
+        guard let monitor = deviceActivityMonitor else {
+            clearInputActivity()
+            return
+        }
+        deviceActivityMonitor = nil
+        monitor.stop()
+        clearInputActivity()
+    }
+
+    private func updateInputActivity(_ deviceID: UInt64, active: Bool) {
+        let changed = active ? activeInputDeviceIDs.insert(deviceID).inserted : activeInputDeviceIDs.remove(deviceID) != nil
+        if changed { objectWillChange.send() }
+    }
+
+    private func clearInputActivity() {
+        guard !activeInputDeviceIDs.isEmpty else { return }
+        activeInputDeviceIDs.removeAll()
+        objectWillChange.send()
     }
 
     func selectCalibrationDevice(_ id: UInt64) {
@@ -182,6 +218,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
     private let optionShortcut = ActivationShortcut()
     private let input = InputService()
     private var stream: TouchStream?
+    private var deviceActivityMonitor: TouchStream?
     private var recognizer = AnchoredTapRecognizer()
     private var centerFeedback = CenterCrossingFeedback()
     private var generation = 0
@@ -315,8 +352,10 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         saveDeviceSession()
         // Ignore the click/finger used to enable the mode, including delayed framework frames.
         let readyAt = ProcessInfo.processInfo.systemUptime + 0.25
+        stopDeviceActivityMonitor()
         stream = TouchStream(deviceIDs: selectedDeviceIDs) { [weak self] deviceID, touches, timestamp in
             guard let self, self.enabled, self.generation == session else { return }
+            self.updateInputActivity(deviceID, active: !touches.isEmpty)
             self.selectDeviceSession(deviceID)
             self.touches = touches
             self.input.updateTouches(touches, deviceID: deviceID)
@@ -375,7 +414,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         updateMenu(); updateGuide()
     }
 
-    func disable() {
+    func disable(resumeActivityMonitor: Bool = true) {
         saveDeviceSession()
         for (id, state) in deviceSessions where state.tracking && state.hasCalibration {
             if let data = try? JSONEncoder().encode(state.transform) { UserDefaults.standard.set(data, forKey: calibrationKey(for: id)) }
@@ -385,11 +424,13 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         snapPanel?.orderOut(nil); overlaySnapPreview = nil; overlayDragging = false
         input.stop()
         stream?.stop(); stream = nil
+        clearInputActivity()
         deviceSessions.removeAll()
         recognizer.reset(); centerFeedback.reset(); calibrationGesture.reset(); clearKeyHighlight(); touches = []
         previewRevision += 1
         activationInput = nil
         hideOverlay()
+        if resumeActivityMonitor { startDeviceActivityMonitor() }
         messageText = LocalizedMessage("app.ui.keypad_off_use_your_trackpad_as_usual")
         if item != nil { updateMenu() }
     }
@@ -548,9 +589,11 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         settingsWindow?.makeKeyAndOrderFront(nil)
+        startDeviceActivityMonitor()
     }
 
     @objc func showOnboarding() {
+        stopDeviceActivityMonitor()
         if enabled { disable() }
         settingsWindow?.orderOut(nil)
         if onboardingWindow == nil {
@@ -793,6 +836,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
             onboarding = nil
             onboardingWindow = nil
         }
+        if window === settingsWindow { stopDeviceActivityMonitor() }
         let other = window === settingsWindow ? onboardingWindow : settingsWindow
         if other?.isVisible != true { NSApp.setActivationPolicy(.accessory) }
     }

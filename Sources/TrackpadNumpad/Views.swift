@@ -245,8 +245,9 @@ struct SettingsView: View {
                     Label(L("app.ui.no_trackpad_found"), systemImage: "exclamationmark.triangle")
                 }
                 ForEach(model.trackpads) { device in
+                    let receivingInput = model.activeInputDeviceIDs.contains(device.id)
                     HStack(spacing: 12) {
-                        Image(systemName: "rectangle.and.hand.point.up.left").font(.title2).foregroundStyle(mint)
+                        Image(systemName: "rectangle.and.hand.point.up.left").font(.title2).foregroundStyle(receivingInput ? Color.green : mint)
                         VStack(alignment: .leading, spacing: 4) {
                             Text(device.displayName).fontWeight(.medium)
                             Text((device.builtIn ? L("app.ui.built_in") : L("app.ui.external")) + " · " + String(device.id, radix: 16).suffix(8))
@@ -258,7 +259,10 @@ struct SettingsView: View {
                             set: { model.setTrackpad(device, enabled: $0) }))
                             .labelsHidden().toggleStyle(.switch).tint(mint)
                     }
-                    .padding(14).background(.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 12))
+                    .padding(14)
+                    .background(receivingInput ? Color.green.opacity(0.14) : .white.opacity(0.04), in: RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(receivingInput ? Color.green.opacity(0.8) : .white.opacity(0.08), lineWidth: receivingInput ? 1.5 : 1))
+                    .animation(.easeInOut(duration: 0.12), value: receivingInput)
                 }
                 Text(L("app.ui.new_trackpads_stay_off_until_selected_a_connection_change_turns_the_keypad_off_safely_press_the_shortcut_to_resume_selection_is_remembered_for_recognized_devices"))
                     .font(.system(size: 11)).foregroundStyle(.secondary)
