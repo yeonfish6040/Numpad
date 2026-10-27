@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='utf-8'?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+  <channel>
+    <title>Numpad Updates</title>
+    <link>https://github.com/yeonfish6040/Numpad/releases</link>
+    <description>Numpad for macOS updates</description>
+    <item>
+      <title>Numpad 0.0.7</title>
+      <link>https://github.com/yeonfish6040/Numpad/releases/tag/v0.0.7</link>
+      <sparkle:releaseNotesLink>https://github.com/yeonfish6040/Numpad/releases/tag/v0.0.7</sparkle:releaseNotesLink>
+      <sparkle:version>0.0.7</sparkle:version>
+      <sparkle:shortVersionString>0.0.7</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <pubDate>Tue, 27 Oct 2026 22:32:57 GMT</pubDate>
+      <enclosure url="https://github.com/yeonfish6040/Numpad/releases/download/v0.0.7/Numpad-0.0.7-universal.dmg" length="1762116" type="application/octet-stream" sparkle:edSignature="5/JUiHGT+NSNA/etsuWs1TfHRltZgtw4WlGBz2rRw2cAZ1DusaarEmYsbwKEbJXJlI+0E8feojCEteLTUtEfBA==" />
+    </item>
+  </channel>
+</rss>

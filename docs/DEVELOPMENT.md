@@ -87,6 +87,27 @@ bash scripts/build-dmg.sh
 
 The script enables hardened runtime, timestamps the app signature, notarizes the app, staples its ticket, creates and signs the DMG, notarizes and staples the DMG, and checks Gatekeeper acceptance. Output: `dist/Numpad-<version>-universal.dmg` and its SHA-256 checksum file.
 
+Numpad uses Sparkle for update checks and installation. The appcast is `appcast.xml` on the `main` branch, served over HTTPS from GitHub. The Sparkle EdDSA private key is stored in the local Keychain; `SUPublicEDKey` is embedded in the app. Never commit or export the private key.
+
+For each release, build and notarize the DMG, publish it as a GitHub Release asset, then sign that DMG and update the appcast:
+
+```sh
+SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
+NOTARY_PROFILE=Numpad \
+bash scripts/build-dmg.sh
+
+gh release create "v$(cat VERSION)" \
+  "dist/Numpad-$(cat VERSION)-universal.dmg" \
+  "dist/Numpad-$(cat VERSION)-SHA256SUMS.txt"
+
+scripts/update-appcast.sh
+git add appcast.xml
+git commit -m "chore: publish update feed for $(cat VERSION)"
+git push origin main
+```
+
+The update script signs the DMG with the Sparkle key in Keychain and writes its signature and byte length into the feed. Sparkle accepts the signed, notarized DMG and installs the app when it exits. The `CFBundleVersion` is set from `VERSION` and must increase for every published update.
+
 Without signing credentials, `bash scripts/build-dmg.sh` produces a local test DMG with no notarization. Do not publish it as a notarized release. Keep credentials and private keys out of the repository.
 
 ## Platform notes

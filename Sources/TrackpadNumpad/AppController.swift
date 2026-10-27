@@ -5,6 +5,7 @@ import Carbon
 import QuartzCore
 import CTrackpad
 import TrackpadCore
+import Sparkle
 
 final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NSWindowDelegate {
     @Published private(set) var enabled = false
@@ -217,6 +218,10 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
     private var calibrationGesture = InteractiveCalibrationGesture()
     private let optionShortcut = ActivationShortcut()
     private let input = InputService()
+    private lazy var updaterController = SPUStandardUpdaterController(
+        startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil
+    )
+    var updater: SPUUpdater { updaterController.updater }
     private var stream: TouchStream?
     private var deviceActivityMonitor: TouchStream?
     private var recognizer = AnchoredTapRecognizer()
@@ -233,6 +238,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
     private var highlightClearWork: DispatchWorkItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        _ = updaterController
         // Recover only a journal left by an older release. New sessions never
         // change system-wide zoom preferences, which affect unselected devices.
         _ = ScreenZoomSuppression()
@@ -850,6 +856,10 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         menu.addItem(withTitle: L("app.ui.settings"), action: #selector(showSettings), keyEquivalent: ",")
         menu.addItem(withTitle: L("app.ui.preview_keypad"), action: #selector(previewGuide), keyEquivalent: "")
         menu.addItem(withTitle: L("app.ui.getting_started"), action: #selector(showOnboarding), keyEquivalent: "")
+        menu.addItem(.separator())
+        let checkForUpdates = NSMenuItem(title: L("app.ui.check_for_updates"), action: #selector(checkForUpdates(_:)), keyEquivalent: "")
+        checkForUpdates.target = self
+        menu.addItem(checkForUpdates)
         if !trusted {
             menu.addItem(withTitle: L("app.ui.allow_accessibility_access"), action: #selector(requestPermission), keyEquivalent: "")
         }
@@ -857,6 +867,10 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         menu.addItem(withTitle: L("app.ui.quit_numpad"), action: #selector(quit), keyEquivalent: "q")
         menu.items.forEach { $0.target = self }
         item.menu = menu
+    }
+
+    @objc private func checkForUpdates(_ sender: Any?) {
+        updaterController.checkForUpdates(sender)
     }
     @objc private func quit() { NSApp.terminate(nil) }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {

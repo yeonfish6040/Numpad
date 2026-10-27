@@ -1,5 +1,6 @@
 import SwiftUI
 import TrackpadCore
+import Sparkle
 
 private let ink = Color.white.opacity(0.9)
 
@@ -217,6 +218,8 @@ struct SettingsView: View {
                     .font(.system(size: 11)).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            Divider()
+            UpdatePreferences(updater: model.updater)
             Spacer(minLength: 0)
         }.padding(20)
     }
@@ -360,6 +363,34 @@ struct SettingsView: View {
                     }
                 }
                 .padding(20)
+        }
+    }
+}
+
+private struct UpdatePreferences: View {
+    let updater: SPUUpdater
+    @State private var automaticallyChecksForUpdates: Bool
+    @State private var automaticallyDownloadsUpdates: Bool
+
+    init(updater: SPUUpdater) {
+        self.updater = updater
+        _automaticallyChecksForUpdates = State(initialValue: updater.automaticallyChecksForUpdates)
+        _automaticallyDownloadsUpdates = State(initialValue: updater.automaticallyDownloadsUpdates)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(L("app.ui.updates")).font(.system(size: 12, weight: .medium))
+            Toggle(L("app.ui.automatically_check_for_updates"), isOn: $automaticallyChecksForUpdates)
+                .toggleStyle(.switch).tint(mint)
+                .onChange(of: automaticallyChecksForUpdates) { updater.automaticallyChecksForUpdates = $0 }
+            Toggle(L("app.ui.automatically_install_updates"), isOn: $automaticallyDownloadsUpdates)
+                .toggleStyle(.switch).tint(mint)
+                .disabled(!automaticallyChecksForUpdates || !updater.allowsAutomaticUpdates)
+                .onChange(of: automaticallyDownloadsUpdates) { updater.automaticallyDownloadsUpdates = $0 }
+            Text(L("app.ui.update_settings_help"))
+                .font(.system(size: 11)).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
