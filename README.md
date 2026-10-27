@@ -41,7 +41,7 @@ By default, press <kbd>Right ⌘</kbd> + <kbd>Right ⌥</kbd>, tap a number, and
 | :--- | :--- |
 | **Tap to type**<br>Numbers, decimal point, arithmetic operators, Return, and Backspace. A short tap types once when you lift your finger. | **Feel each input**<br>Separate haptics for touch down and confirmed input, plus a stronger guide at the center of `5`. |
 | **Make room**<br>Drag the translucent overlay anywhere. Snap to screen edges or center; let it move around the focused input field. | **Pick your side**<br>Place operators on the left or right. Rest one finger and use another for repeated taps. |
-| **Keep it local**<br>No accounts, network requests, analytics, or input log files. The app reads field geometry to position the overlay, not field contents. | **Choose your language**<br>English by default, with Korean available in Settings. Switch instantly, without restarting. |
+| **Keep it local**<br>No accounts, network requests, analytics, or input log files. The app reads field geometry to position the overlay, not field contents. | **Choose your language**<br>English by default, with Korean and Japanese available in Settings. Switch instantly, without restarting. |
 
 ## Get started
 
@@ -52,7 +52,7 @@ By default, press <kbd>Right ⌘</kbd> + <kbd>Right ⌥</kbd>, tap a number, and
 
 **Requires macOS 13+ and a Mac trackpad.** Force Touch is required for haptic feedback. The DMG includes Apple Silicon and Intel support.
 
-On first launch, an interactive guide walks through permission, layout, the shortcut, and a safe typing practice. Reopen it anytime from **Getting Started…** in the menu bar. English and Korean can be selected inside the guide.
+On first launch, an interactive guide walks through permission, layout, the shortcut, and a safe typing practice. Reopen it anytime from **Getting Started…** in the menu bar. English, Korean, and Japanese can be selected inside the guide.
 
 > While the keypad is on, pointer movement, tap-to-click, scrolling, and gestures from selected trackpads are blocked when their source can be identified. Physical clicks and click-drag still work. Other trackpads and mice keep working normally. Opening Settings turns the keypad off.
 
@@ -128,7 +128,7 @@ open dist/Numpad.app
 
 Built with Swift, AppKit, and SwiftUI, with no external package dependencies. The [development guide](docs/DEVELOPMENT.md) covers the codebase, localization, diagnostics, and signed DMG builds.
 
-Found a bug or have an idea? [Open an issue](https://github.com/yeonfish6040/Numpad/issues) with your Mac model, macOS version, and steps to reproduce it. Translation improvements are welcome too.
+Found a bug or have an idea? [Open an issue](https://github.com/yeonfish6040/Numpad/issues) with your Mac model, macOS version, and steps to reproduce it. Translation improvements are welcome too. Thanks to [LumaKernel](https://github.com/LumaKernel) for contributing the Japanese localization.
 
 ## License
 
