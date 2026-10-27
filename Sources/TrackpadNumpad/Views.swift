@@ -180,7 +180,7 @@ struct SettingsView: View {
                     .frame(width: 160)
                 }
                 Divider()
-            LoginItemSettings()
+            LoginItemSettings(model: model)
             Divider()
             HStack {
                 Text(L("app.ui.overlay_position")).font(.system(size: 12))

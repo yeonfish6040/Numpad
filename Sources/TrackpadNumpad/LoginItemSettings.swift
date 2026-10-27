@@ -29,6 +29,7 @@ final class LoginItemService: ObservableObject {
 }
 
 struct LoginItemSettings: View {
+    @ObservedObject var model: AppController
     @StateObject private var service = LoginItemService()
 
     var body: some View {
