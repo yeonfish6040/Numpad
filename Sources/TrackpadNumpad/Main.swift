@@ -6,11 +6,16 @@ import TrackpadCore
 enum Main {
     static func main() {
         if CommandLine.arguments.contains("--check-localization") {
-            let english = AppLocalization.text("Settings…", language: .english)
-            let korean = AppLocalization.text("Settings…", language: .korean)
-            let onboarding = AppLocalization.text("Get Started", language: .korean)
-            print("English: \(english)\nKorean: \(korean)\nOnboarding: Get Started / \(onboarding)")
-            exit(english == "Settings…" && korean == "설정…" && onboarding == "시작하기" ? 0 : 1)
+            let settingsKey = "app.ui.settings"
+            let startKey = "app.ui.get_started"
+            let english = AppLocalization.text(settingsKey, language: .english)
+            let korean = AppLocalization.text(settingsKey, language: .korean)
+            let japanese = AppLocalization.text(settingsKey, language: .japanese)
+            let koreanOnboarding = AppLocalization.text(startKey, language: .korean)
+            let japaneseOnboarding = AppLocalization.text(startKey, language: .japanese)
+            print("English: \(english)\nKorean: \(korean)\nJapanese: \(japanese)")
+            exit(english == "Settings…" && korean == "설정…" && japanese == "設定…"
+                 && koreanOnboarding == "시작하기" && japaneseOnboarding == "はじめる" ? 0 : 1)
         }
         if CommandLine.arguments.contains("--test-haptic") {
             let success = TPHapticClick()
@@ -21,15 +26,15 @@ enum Main {
         if CommandLine.arguments.contains("--diagnose") {
             let ready = TPInitialize()
             print("macOS: \(ProcessInfo.processInfo.operatingSystemVersionString)")
-            print("MultitouchSupport / trackpads: \(ready ? "OK" : String(cString: TPError()))")
+            print("MultitouchSupport / trackpads: \(ready ? "OK" : AppLocalization.text(String(cString: TPError())))")
             for device in TrackpadDevice.connected() {
-                print("Trackpad: \(device.name), id=\(device.id), registry=\(device.registryID), built-in=\(device.builtIn)")
+                print("Trackpad: \(device.displayName), id=\(device.id), registry=\(device.registryID), built-in=\(device.builtIn)")
                 print("Sender attribution: \(TPDeviceIDForSender(device.registryID) == device.id ? "OK" : "unavailable")")
             }
             print("Accessibility: \(AXIsProcessTrusted() ? "granted" : "not granted")")
             if ready {
                 let started = TPStart({ _, _, _, _ in }, nil)
-                print("Touch stream start: \(started ? "OK" : String(cString: TPError()))")
+                print("Touch stream start: \(started ? "OK" : AppLocalization.text(String(cString: TPError())))")
                 TPStop()
                 print("Touch stream stop: OK")
                 if !started { exit(1) }

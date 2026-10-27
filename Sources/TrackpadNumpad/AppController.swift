@@ -10,16 +10,16 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
     @Published private(set) var enabled = false
     @Published private(set) var trusted = AXIsProcessTrusted()
     @Published private(set) var deviceReady = false
-    @Published private var messageText = LocalizedMessage("Turn your trackpad into a numeric keypad.")
+    @Published private var messageText = LocalizedMessage("app.ui.turn_your_trackpad_into_a_numeric_keypad")
     var message: String { messageText.text(language: language) }
     @Published var language = AppLanguage.load() {
         didSet {
             guard oldValue != language else { return }
             UserDefaults.standard.set(language.rawValue, forKey: "appLanguage")
-            settingsWindow?.title = L("Numpad Settings")
-            onboardingWindow?.title = L("Welcome to Numpad")
-            panel?.title = L("Numpad Overlay")
-            mirrorPanels.values.forEach { $0.title = L("Numpad Overlay") }
+            settingsWindow?.title = L("app.ui.numpad_settings")
+            onboardingWindow?.title = L("app.ui.welcome_to_numpad")
+            panel?.title = L("app.ui.numpad_overlay")
+            mirrorPanels.values.forEach { $0.title = L("app.ui.numpad_overlay") }
             if item != nil { updateMenu() }
         }
     }
@@ -68,7 +68,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         var touches: [Touch] = []
         var transform = PadTransform.identity
         var hasCalibration = false
-        var text = LocalizedMessage("No calibration yet.")
+        var text = LocalizedMessage("app.ui.no_calibration_yet")
         var tracking = false
         var baseline: (transform: PadTransform, has: Bool, status: LocalizedMessage)?
     }
@@ -129,7 +129,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
     }
     @Published private(set) var calibrationTransform = PadTransform.identity
     @Published private(set) var hasCalibration = false
-    @Published private var calibrationText = LocalizedMessage("No calibration yet.")
+    @Published private var calibrationText = LocalizedMessage("app.ui.no_calibration_yet")
     var calibrationStatus: String { calibrationText.text(language: language) }
     var effectiveTransform: PadTransform { experimentalCalibration ? calibrationTransform : .identity }
     @Published var hapticsEnabled = UserDefaults.standard.object(forKey: "hapticsEnabled") as? Bool ?? true {
@@ -167,6 +167,9 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
             UserDefaults.standard.set(showOnAllDisplays, forKey: "showOnAllDisplays")
             if panel?.isVisible == true { updateGuide() }
         }
+    }
+    @Published var blocksClicks = UserDefaults.standard.object(forKey: "blocksClicks") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(blocksClicks, forKey: "blocksClicks") }
     }
     private var item: NSStatusItem!
     private var panel: NSPanel?
@@ -220,7 +223,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         optionShortcut.start()
         input.onFailure = { [weak self] in
             self?.disable()
-            self?.messageText = LocalizedMessage("Input monitoring stopped, so the keypad was turned off. Turn it on again to continue.")
+            self?.messageText = LocalizedMessage("app.ui.input_monitoring_stopped_so_the_keypad_was_turned_off_turn_it_on_again_to_continue")
         }
         previousApp = NSWorkspace.shared.frontmostApplication
         activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
@@ -247,15 +250,15 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
                 let wasEnabled = self.enabled
                 self.onboardingWindow?.close()
                 self.refreshTrackpads()
-                if wasEnabled { self.messageText = LocalizedMessage("Trackpad connections changed. Check your devices and turn the keypad on again.") }
+                if wasEnabled { self.messageText = LocalizedMessage("app.ui.trackpad_connections_changed_check_your_devices_and_turn_the_keypad_on_again") }
             }
             let wasTrusted = self.trusted
             self.trusted = AXIsProcessTrusted()
             if wasTrusted != self.trusted { self.updateMenu() }
             if self.trusted { self.optionShortcut.start() } else { self.optionShortcut.stop() }
-            if self.enabled && !self.trusted { self.disable(); self.messageText = LocalizedMessage("Please allow Accessibility access again.") }
+            if self.enabled && !self.trusted { self.disable(); self.messageText = LocalizedMessage("app.ui.please_allow_accessibility_access_again") }
             // Secure input must not leave the pointer trapped if Escape is unavailable.
-            if self.enabled && IsSecureEventInputEnabled() { self.disable(); self.messageText = LocalizedMessage("The keypad is paused while Secure Input is active.") }
+            if self.enabled && IsSecureEventInputEnabled() { self.disable(); self.messageText = LocalizedMessage("app.ui.the_keypad_is_paused_while_secure_input_is_active") }
         }
         screenObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
@@ -280,21 +283,22 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         onboardingWindow?.close()
         trusted = AXIsProcessTrusted()
         guard trusted else {
-            messageText = LocalizedMessage("Allow Accessibility access, then turn the keypad on again.")
+            messageText = LocalizedMessage("app.ui.allow_accessibility_access_then_turn_the_keypad_on_again")
             requestPermission(); return
         }
-        guard !IsSecureEventInputEnabled() else { messageText = LocalizedMessage("Turn the keypad on again after leaving Secure Input."); return }
+        guard !IsSecureEventInputEnabled() else { messageText = LocalizedMessage("app.ui.turn_the_keypad_on_again_after_leaving_secure_input"); return }
         refreshTrackpads()
         deviceReady = TPInitialize()
         guard !selectedDeviceIDs.isEmpty else {
-            messageText = LocalizedMessage("Select a trackpad in Settings before turning on the keypad.")
+            messageText = LocalizedMessage("app.ui.select_a_trackpad_in_settings_before_turning_on_the_keypad")
             showSettings(); return
         }
         guard deviceReady else { messageText = LocalizedMessage(String(cString: TPError())); showSettings(); return }
         activationInput = FocusedInput.capture(applicationPID: NSApp.isActive ? previousApp?.processIdentifier : nil)
         input.selectedDeviceIDs = Set(selectedDeviceIDs)
+        input.blocksClicks = blocksClicks
         guard input.start() else {
-            messageText = LocalizedMessage("Could not start input monitoring. Check Accessibility access and restart Numpad.")
+            messageText = LocalizedMessage("app.ui.could_not_start_input_monitoring_check_accessibility_access_and_restart_numpad")
             showSettings(); return
         }
         generation += 1
@@ -357,12 +361,12 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         if !keepCalibrationOnReactivate {
             calibrationTransform = .identity
             hasCalibration = false
-            calibrationText = LocalizedMessage("Using the default layout. Calibrate again if needed.")
+            calibrationText = LocalizedMessage("app.ui.using_the_default_layout_calibrate_again_if_needed")
             resetInputState()
         }
         enabled = true
         input.blocksSystemGestures = experimentalCalibration
-        messageText = LocalizedMessage("Keypad active · Press Esc to exit")
+        messageText = LocalizedMessage("app.ui.keypad_active_press_esc_to_exit")
         if NSApp.isActive {
             settingsWindow?.orderOut(nil)
             NSApp.setActivationPolicy(.accessory)
@@ -386,7 +390,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         previewRevision += 1
         activationInput = nil
         hideOverlay()
-        messageText = LocalizedMessage("Keypad off. Use your trackpad as usual.")
+        messageText = LocalizedMessage("app.ui.keypad_off_use_your_trackpad_as_usual")
         if item != nil { updateMenu() }
     }
 
@@ -453,10 +457,10 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         if let data = UserDefaults.standard.data(forKey: calibrationKey),
            let saved = try? JSONDecoder().decode(PadTransform.self, from: data), saved.isSimilarity {
             calibrationTransform = saved; hasCalibration = true
-            calibrationText = LocalizedMessage("Saved calibration is ready.")
+            calibrationText = LocalizedMessage("app.ui.saved_calibration_is_ready")
         } else {
             calibrationTransform = .identity; hasCalibration = false
-            calibrationText = LocalizedMessage("No calibration yet.")
+            calibrationText = LocalizedMessage("app.ui.no_calibration_yet")
         }
         resetInputState()
     }
@@ -496,7 +500,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
             let transform = try PadTransform.calibrating(points, layout: controlSide, keys: keypadKeys, preserveOrder: preserveOrder, reference: calibrationBaseline?.transform ?? calibrationTransform)
             calibrationTransform = transform; hasCalibration = true
             if persist { persistCalibration() }
-            calibrationText = LocalizedMessage(persist ? "%d-finger calibration applied · Position, rotation, and scale" : "Calibrating with %d fingers", count: points.count)
+            calibrationText = LocalizedMessage(persist ? "app.ui.count_finger_calibration_applied_position_rotation_and_scale" : "app.ui.calibrating_with_count_fingers", count: points.count)
             if resetGesture { resetInputState() }
             if feedback && hapticCalibration { playHaptic() }
         } catch {
@@ -533,7 +537,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         if settingsWindow == nil {
             let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 680, height: 740),
                 styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
-            window.title = L("Numpad Settings")
+            window.title = L("app.ui.numpad_settings")
             window.contentView = NSHostingView(rootView: SettingsView(model: self))
             window.isReleasedWhenClosed = false
             window.delegate = self
@@ -553,7 +557,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
             let model = OnboardingModel(app: self)
             let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 820, height: 580),
                 styleMask: [.titled, .closable, .fullSizeContentView], backing: .buffered, defer: false)
-            window.title = L("Welcome to Numpad")
+            window.title = L("app.ui.welcome_to_numpad")
             window.titleVisibility = .hidden
             window.titlebarAppearsTransparent = true
             window.isMovableByWindowBackground = true
@@ -609,7 +613,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         if panel == nil {
             let created = OverlayPanel(contentRect: NSRect(x: 0, y: 0, width: 540, height: 360),
                 styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-            created.title = L("Numpad Overlay")
+            created.title = L("app.ui.numpad_overlay")
             created.contentView = NSHostingView(rootView: GuideView(model: self))
             created.isOpaque = false; created.backgroundColor = .clear
             created.hasShadow = true
@@ -662,7 +666,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
             } else {
                 let created = OverlayPanel(contentRect: NSRect(x: 0, y: 0, width: 540, height: 360),
                     styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-                created.title = L("Numpad Overlay")
+                created.title = L("app.ui.numpad_overlay")
                 created.contentView = NSHostingView(rootView: GuideView(model: self))
                 created.isOpaque = false; created.backgroundColor = .clear
                 created.hasShadow = true
@@ -798,15 +802,15 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         item.button?.contentTintColor = enabled ? .systemMint : nil
         item.button?.toolTip = "Numpad · " + shortcutTitle
         let menu = NSMenu()
-        menu.addItem(withTitle: (enabled ? L("Turn Keypad Off") : L("Turn Keypad On")) + "  " + shortcutTitle, action: #selector(toggle), keyEquivalent: "")
-        menu.addItem(withTitle: L("Settings…"), action: #selector(showSettings), keyEquivalent: ",")
-        menu.addItem(withTitle: L("Preview Keypad"), action: #selector(previewGuide), keyEquivalent: "")
-        menu.addItem(withTitle: L("Getting Started…"), action: #selector(showOnboarding), keyEquivalent: "")
+        menu.addItem(withTitle: (enabled ? L("app.ui.turn_keypad_off") : L("app.ui.turn_keypad_on")) + "  " + shortcutTitle, action: #selector(toggle), keyEquivalent: "")
+        menu.addItem(withTitle: L("app.ui.settings"), action: #selector(showSettings), keyEquivalent: ",")
+        menu.addItem(withTitle: L("app.ui.preview_keypad"), action: #selector(previewGuide), keyEquivalent: "")
+        menu.addItem(withTitle: L("app.ui.getting_started"), action: #selector(showOnboarding), keyEquivalent: "")
         if !trusted {
-            menu.addItem(withTitle: L("Allow Accessibility Access…"), action: #selector(requestPermission), keyEquivalent: "")
+            menu.addItem(withTitle: L("app.ui.allow_accessibility_access"), action: #selector(requestPermission), keyEquivalent: "")
         }
         menu.addItem(.separator())
-        menu.addItem(withTitle: L("Quit Numpad"), action: #selector(quit), keyEquivalent: "q")
+        menu.addItem(withTitle: L("app.ui.quit_numpad"), action: #selector(quit), keyEquivalent: "q")
         menu.items.forEach { $0.target = self }
         item.menu = menu
     }

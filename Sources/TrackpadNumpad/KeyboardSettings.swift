@@ -6,10 +6,10 @@ import TrackpadCore
 extension TrackpadCore.KeyboardShortcut {
     var displayName: String {
         guard let keyCode else {
-            if isDefault { return L("Right ⌘ + Right ⌥") }
-            let keys: [(UInt64, String)] = [(1, L("Left ⌃")), (0x2000, L("Right ⌃")),
-                (2, L("Left ⇧")), (4, L("Right ⇧")), (8, L("Left ⌘")), (16, L("Right ⌘")),
-                (32, L("Left ⌥")), (64, L("Right ⌥"))]
+            if isDefault { return L("app.ui.right_command_right_option") }
+            let keys: [(UInt64, String)] = [(1, L("app.ui.left_control")), (0x2000, L("app.ui.right_control")),
+                (2, L("app.ui.left_shift")), (4, L("app.ui.right_shift")), (8, L("app.ui.left_command")), (16, L("app.ui.right_command")),
+                (32, L("app.ui.left_option")), (64, L("app.ui.right_option"))]
             return keys.filter { chordBits & $0.0 != 0 }.map(\.1).joined(separator: " + ")
         }
         let symbols = [(UInt64(0x40000), "⌃"), (0x80000, "⌥"), (0x20000, "⇧"), (0x100000, "⌘")]
@@ -35,7 +35,7 @@ extension TrackpadCore.KeyboardShortcut {
                 return String(utf16CodeUnits: chars, count: length).uppercased()
             }
         }
-        return "Key \(code)"
+        return String(format: L("app.ui.key_code"), code)
     }
 }
 
@@ -126,7 +126,7 @@ final class ShortcutRecorder: ObservableObject {
             switch result {
             case .cancelled: self.stop()
             case .invalid:
-                self.problem = L("Use two modifier keys, or a key with Command, Option, or Control. Esc cancels.")
+                self.problem = L("app.ui.use_two_modifier_keys_or_a_key_with_command_option_or_control_esc_cancels")
                 self.state = ShortcutRecording(initialFlags: UInt64(NSEvent.modifierFlags.rawValue))
                 self.preview = nil
             case .candidate(let shortcut):
@@ -159,13 +159,13 @@ struct ShortcutSettings: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(L("Activation Shortcut")).font(.headline)
+            Text(L("app.ui.activation_shortcut")).font(.headline)
             HStack {
                 Text(recorder.preview?.displayName ?? model.shortcutTitle).font(.system(.body, design: .monospaced))
                     .padding(.horizontal, 12).padding(.vertical, 8)
                     .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
                 Spacer()
-                Button(recorder.isRecording ? L("Cancel") : L("Record Shortcut")) {
+                Button(recorder.isRecording ? L("app.ui.cancel") : L("app.ui.record_shortcut")) {
                     if recorder.isRecording { recorder.stop() }
                     else {
                         recorder.onRecordingChange = { [weak target = model] in target?.recordingShortcut = $0 }
@@ -173,22 +173,22 @@ struct ShortcutSettings: View {
                         recorder.start()
                     }
                 }
-                Button(L("Reset")) { recorder.stop(); model.activationShortcut = .default }
+                Button(L("app.ui.reset")) { recorder.stop(); model.activationShortcut = .default }
                     .disabled(model.activationShortcut.isDefault && !recorder.isRecording)
             }
-            Text(L(recorder.isRecording ? "Press and release your shortcut. Use two modifier keys, or a key with Command, Option, or Control. Esc cancels." : "Use the shortcut to toggle your selected trackpads. Esc always turns the keypad off."))
+            Text(L(recorder.isRecording ? "app.ui.press_and_release_your_shortcut_use_two_modifier_keys_or_a_key_with_command_option_or_control_esc_cancels" : "app.ui.use_the_shortcut_to_toggle_your_selected_trackpads_esc_always_turns_the_keypad_off"))
                 .font(.system(size: 11)).foregroundStyle(.secondary)
             if let problem = recorder.problem ?? model.shortcutProblem {
                 Text(problem).font(.system(size: 11)).foregroundStyle(.orange)
             }
-            Text(L("macOS shortcuts and registered global shortcuts are checked. Some app-specific shortcuts and modifier-only shortcuts cannot be checked."))
+            Text(L("app.ui.macos_shortcuts_and_registered_global_shortcuts_are_checked_some_app_specific_shortcuts_and_modifier_only_shortcuts_cannot_be_checked"))
                 .font(.system(size: 10)).foregroundStyle(.secondary)
         }
         .onDisappear { recorder.stop() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in recorder.stop() }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { notification in
             // Ignore notifications from unrelated panels and applications.
-            if let window = notification.object as? NSWindow, window.title == L("Numpad Settings") { recorder.stop() }
+            if let window = notification.object as? NSWindow, window.title == L("app.ui.numpad_settings") { recorder.stop() }
         }
     }
 }
@@ -199,15 +199,15 @@ struct KeyArrangementEditor: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(L("Key Arrangement")).font(.headline)
+                Text(L("app.ui.key_arrangement")).font(.headline)
                 Spacer()
-                Button(L("Reset Layout")) { selected = nil; model.arrangement = KeyArrangement() }
+                Button(L("app.ui.reset_layout")) { selected = nil; model.arrangement = KeyArrangement() }
             }
-            Picker(L("Operator Position"), selection: $model.controlSide) {
-                Text(L("Left")).tag(KeypadLayout.left)
-                Text(L("Right")).tag(KeypadLayout.right)
+            Picker(L("app.ui.operator_position"), selection: $model.controlSide) {
+                Text(L("app.ui.left")).tag(KeypadLayout.left)
+                Text(L("app.ui.right")).tag(KeypadLayout.right)
             }.pickerStyle(.segmented).labelsHidden()
-            Text(L("Select two keys to swap them. Slot sizes stay fixed. Each side remembers its own arrangement."))
+            Text(L("app.ui.select_two_keys_to_swap_them_slot_sizes_stay_fixed_each_side_remembers_its_own_arrangement"))
                 .font(.system(size: 11)).foregroundStyle(.secondary)
             GeometryReader { geometry in
                 let gap: CGFloat = 6

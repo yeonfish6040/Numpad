@@ -33,24 +33,24 @@ struct LoginItemSettings: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Toggle(L("Launch at Login"), isOn: Binding(
+            Toggle(L("app.ui.launch_at_login"), isOn: Binding(
                 get: { service.isRegistered }, set: { service.setEnabled($0) }))
                 .toggleStyle(.switch).tint(mint)
                 .disabled(!service.isPackagedApp)
-            Text(L("Start Numpad in the menu bar when you log in. The keypad stays off until you activate it."))
+            Text(L("app.ui.start_numpad_in_the_menu_bar_when_you_log_in_the_keypad_stays_off_until_you_activate_it"))
                 .font(.system(size: 11)).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             if !service.isPackagedApp {
-                Text(L("Open the installed Numpad app to configure launch at login."))
+                Text(L("app.ui.open_the_installed_numpad_app_to_configure_launch_at_login"))
                     .font(.system(size: 11)).foregroundStyle(.secondary)
             } else if service.status == .requiresApproval {
-                Text(L("Allow Numpad in System Settings → General → Login Items to finish enabling launch at login."))
+                Text(L("app.ui.allow_numpad_in_system_settings_general_login_items_to_finish_enabling_launch_at_login"))
                     .font(.system(size: 11)).foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
-                Button(L("Open Login Items Settings")) { SMAppService.openSystemSettingsLoginItems() }
+                Button(L("app.ui.open_login_items_settings")) { SMAppService.openSystemSettingsLoginItems() }
             }
             if let error = service.error {
-                Text(L("Could not update launch at login.") + " " + error)
+                Text(L("app.ui.could_not_update_launch_at_login") + " " + error)
                     .font(.system(size: 11)).foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
             }

@@ -80,7 +80,7 @@ struct GuideView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 20))
             }
             .overlay(RoundedRectangle(cornerRadius: 20).strokeBorder(.white.opacity(0.12), lineWidth: 1))
-            Text(L("Press Esc to exit"))
+            Text(L("app.ui.press_esc_to_exit"))
                 .font(.system(size: 10))
                 .foregroundStyle(.white.opacity(0.6))
                 .shadow(color: .black.opacity(0.8), radius: 2, y: 1)
@@ -139,25 +139,25 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 5) {
                 Text("Numpad").font(.system(size: 23, weight: .semibold))
-                Text(model.shortcutTitle + " · " + L("Press Esc to exit"))
+                Text(model.shortcutTitle + " · " + L("app.ui.press_esc_to_exit"))
                     .font(.system(size: 11)).foregroundStyle(.secondary)
                 Text(model.message).font(.system(size: 11)).foregroundStyle(.secondary)
             }
             TabView {
-                generalSettings.tabItem { Text(L("General")) }
-                keyboardSettings.tabItem { Text(L("Keyboard")) }
-                trackpadSettings.tabItem { Text(L("Trackpads")) }
-                hapticSettings.tabItem { Text(L("Haptics")) }
-                experimentalSettings.tabItem { Text(L("Experimental")) }
+                generalSettings.tabItem { Text(L("app.ui.general")) }
+                keyboardSettings.tabItem { Text(L("app.ui.keyboard")) }
+                trackpadSettings.tabItem { Text(L("app.ui.trackpads")) }
+                hapticSettings.tabItem { Text(L("app.ui.haptics")) }
+                experimentalSettings.tabItem { Text(L("app.ui.experimental")) }
             }
             HStack {
                 if !model.trusted {
-                    Button(L("Allow Accessibility Access…")) { model.requestPermission() }
+                    Button(L("app.ui.allow_accessibility_access")) { model.requestPermission() }
                 }
                 Spacer()
-                Button(L("Preview Overlay")) { model.previewGuide() }
+                Button(L("app.ui.preview_overlay")) { model.previewGuide() }
             }
-            Text(L("Changes are saved automatically. Opening Settings turns off the keypad."))
+            Text(L("app.ui.changes_are_saved_automatically_opening_settings_turns_off_the_keypad"))
                 .font(.system(size: 10)).foregroundStyle(.tertiary)
         }
         .padding(24)
@@ -169,9 +169,9 @@ struct SettingsView: View {
     private var generalSettings: some View {
         VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Text(L("Language"))
+                    Text(L("app.ui.language"))
                     Spacer()
-                    Picker(L("Language"), selection: $model.language) {
+                    Picker(L("app.ui.language"), selection: $model.language) {
                         ForEach(AppLanguage.allCases, id: \.self) { language in
                             Text(language.name).tag(language)
                         }
@@ -183,17 +183,17 @@ struct SettingsView: View {
             LoginItemSettings()
             Divider()
             HStack {
-                Text(L("Overlay Position")).font(.system(size: 12))
+                Text(L("app.ui.overlay_position")).font(.system(size: 12))
                 Spacer()
-                Button(L("Reset to Bottom Center")) { model.resetOverlayPosition() }
+                Button(L("app.ui.reset_to_bottom_center")) { model.resetOverlayPosition() }
             }
-            Text(L("Click and drag the overlay to save its position. It moves out of the way when it would cover the focused input field."))
+            Text(L("app.ui.click_and_drag_the_overlay_to_save_its_position_it_moves_out_of_the_way_when_it_would_cover_the_focused_input_field"))
                 .font(.system(size: 11)).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             Divider()
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text(L("Overlay Opacity")).font(.system(size: 12))
+                    Text(L("app.ui.overlay_opacity")).font(.system(size: 12))
                     Spacer()
                     Text("\(Int(model.overlayOpacity * 100))%")
                         .font(.system(size: 11, design: .monospaced))
@@ -203,9 +203,17 @@ struct SettingsView: View {
             }
             Divider()
             VStack(alignment: .leading, spacing: 8) {
-                Toggle(L("Show Overlay on All Displays"), isOn: $model.showOnAllDisplays)
+                Toggle(L("app.ui.show_overlay_on_all_displays"), isOn: $model.showOnAllDisplays)
                     .toggleStyle(.switch).tint(mint)
-                Text(L("When enabled, the overlay appears on every connected display. Only the primary overlay can be dragged."))
+                Text(L("app.ui.when_enabled_the_overlay_appears_on_every_connected_display_only_the_primary_overlay_can_be_dragged"))
+                    .font(.system(size: 11)).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Divider()
+            VStack(alignment: .leading, spacing: 8) {
+                Toggle(L("app.settings.block_physical_clicks"), isOn: $model.blocksClicks)
+                    .toggleStyle(.switch).tint(mint)
+                Text(L("app.settings.block_physical_clicks_help"))
                     .font(.system(size: 11)).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -227,34 +235,34 @@ struct SettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Text(L("Use as Keypad")).font(.headline)
+                    Text(L("app.ui.use_as_keypad")).font(.headline)
                     Spacer()
-                    Button(L("Refresh Devices")) { model.refreshTrackpads() }
+                    Button(L("app.ui.refresh_devices")) { model.refreshTrackpads() }
                 }
-                Text(L("The activation shortcut toggles only the selected trackpads. Other trackpads keep their normal pointer, clicks, scrolling, and gestures."))
+                Text(L("app.ui.the_activation_shortcut_toggles_only_the_selected_trackpads_other_trackpads_keep_their_normal_pointer_clicks_scrolling_and_gestures"))
                     .font(.system(size: 12)).foregroundStyle(.secondary)
                 if model.trackpads.isEmpty {
-                    Label(L("No trackpad found"), systemImage: "exclamationmark.triangle")
+                    Label(L("app.ui.no_trackpad_found"), systemImage: "exclamationmark.triangle")
                 }
                 ForEach(model.trackpads) { device in
                     HStack(spacing: 12) {
                         Image(systemName: "rectangle.and.hand.point.up.left").font(.title2).foregroundStyle(mint)
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(device.builtIn ? L("Built-in Trackpad") : device.name).fontWeight(.medium)
-                            Text((device.builtIn ? L("Built-in") : L("External")) + " · " + String(device.id, radix: 16).suffix(8))
+                            Text(device.displayName).fontWeight(.medium)
+                            Text((device.builtIn ? L("app.ui.built_in") : L("app.ui.external")) + " · " + String(device.id, radix: 16).suffix(8))
                                 .font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Toggle(L("Use as Keypad"), isOn: Binding(
+                        Toggle(L("app.ui.use_as_keypad"), isOn: Binding(
                             get: { model.enabledTrackpads.contains(device.persistentID) },
                             set: { model.setTrackpad(device, enabled: $0) }))
                             .labelsHidden().toggleStyle(.switch).tint(mint)
                     }
                     .padding(14).background(.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 12))
                 }
-                Text(L("New trackpads stay off until selected. A connection change turns the keypad off safely; press the shortcut to resume. Selection is remembered for recognized devices."))
+                Text(L("app.ui.new_trackpads_stay_off_until_selected_a_connection_change_turns_the_keypad_off_safely_press_the_shortcut_to_resume_selection_is_remembered_for_recognized_devices"))
                     .font(.system(size: 11)).foregroundStyle(.secondary)
-                Text(L("Events whose source device cannot be identified pass through unchanged."))
+                Text(L("app.ui.events_whose_source_device_cannot_be_identified_pass_through_unchanged"))
                     .font(.system(size: 11)).foregroundStyle(.secondary)
             }.padding(20)
         }
@@ -262,22 +270,22 @@ struct SettingsView: View {
 
     private var hapticSettings: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Toggle(L("Enable Haptics"), isOn: $model.hapticsEnabled)
+            Toggle(L("app.ui.enable_haptics"), isOn: $model.hapticsEnabled)
                 .font(.headline)
             Divider()
             VStack(alignment: .leading, spacing: 16) {
-                Text(L("Key Input")).font(.headline)
-                Toggle(L("On touch down"), isOn: $model.hapticTouchDown)
-                Toggle(L("When a tap is confirmed on release"), isOn: $model.hapticInputConfirmed)
+                Text(L("app.ui.key_input")).font(.headline)
+                Toggle(L("app.ui.on_touch_down"), isOn: $model.hapticTouchDown)
+                Toggle(L("app.ui.when_a_tap_is_confirmed_on_release"), isOn: $model.hapticInputConfirmed)
                 Divider()
-                Text(L("Center Guide for 5")).font(.headline)
-                Toggle(L("When entering the center"), isOn: $model.hapticFiveEnter)
-                Toggle(L("When leaving the center"), isOn: $model.hapticFiveExit)
-                Text(L("A stronger haptic marks the small center region."))
+                Text(L("app.ui.center_guide_for_5")).font(.headline)
+                Toggle(L("app.ui.when_entering_the_center"), isOn: $model.hapticFiveEnter)
+                Toggle(L("app.ui.when_leaving_the_center"), isOn: $model.hapticFiveExit)
+                Text(L("app.ui.a_stronger_haptic_marks_the_small_center_region"))
                     .font(.system(size: 11)).foregroundStyle(.secondary)
                 Divider()
-                Text(L("Experimental Calibration")).font(.headline)
-                Toggle(L("When finger calibration is applied"), isOn: $model.hapticCalibration)
+                Text(L("app.ui.experimental_calibration")).font(.headline)
+                Toggle(L("app.ui.when_finger_calibration_is_applied"), isOn: $model.hapticCalibration)
             }
             .disabled(!model.hapticsEnabled)
             Spacer(minLength: 0)
@@ -290,61 +298,61 @@ struct SettingsView: View {
         ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
                     if model.trackpads.count > 1 {
-                        Picker(L("Calibration Trackpad"), selection: Binding(
+                        Picker(L("app.ui.calibration_trackpad"), selection: Binding(
                             get: { model.currentDeviceID }, set: { model.selectCalibrationDevice($0) })) {
                             ForEach(model.trackpads) { device in
-                                Text((device.builtIn ? L("Built-in Trackpad") : device.name) + " · " + String(device.id, radix: 16).suffix(8))
+                                Text(device.displayName + " · " + String(device.id, radix: 16).suffix(8))
                                     .tag(device.id)
                             }
                         }
                     }
                     Toggle(isOn: $model.experimentalCalibration) {
                         HStack(spacing: 8) {
-                            Text(L("Calibrate with Finger Positions")).fontWeight(.medium)
-                            Text(L("Experimental")).font(.system(size: 10)).foregroundStyle(mint)
+                            Text(L("app.ui.calibrate_with_finger_positions")).fontWeight(.medium)
+                            Text(L("app.ui.experimental")).font(.system(size: 10)).foregroundStyle(mint)
                                 .padding(.horizontal, 6).padding(.vertical, 3)
                                 .background(mint.opacity(0.1), in: Capsule())
                         }
                     }.toggleStyle(.switch).tint(mint)
-                    Text(L("With the keypad on, place three fingers together. Keep the middle finger at the center of 5 and use the outer fingers to adjust rotation and scale. Key shapes and proportions stay the same."))
+                    Text(L("app.ui.with_the_keypad_on_place_three_fingers_together_keep_the_middle_finger_at_the_center_of_5_and_use_the_outer_fingers_to_adjust_rotation_and_scale_key_shapes_and_proportions_stay_the_same"))
                         .font(.system(size: 12)).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                     VStack(alignment: .leading, spacing: 8) {
-                        Picker(L("Apply Calibration"), selection: $model.calibrationTiming) {
-                            Text(L("On Touch")).tag(CalibrationTiming.touchDown)
-                            Text(L("On Release")).tag(CalibrationTiming.liftOff)
+                        Picker(L("app.ui.apply_calibration"), selection: $model.calibrationTiming) {
+                            Text(L("app.ui.on_touch")).tag(CalibrationTiming.touchDown)
+                            Text(L("app.ui.on_release")).tag(CalibrationTiming.liftOff)
                         }.pickerStyle(.segmented)
-                        Text(L("Defaults to On Touch. Drag with three or four fingers to move, rotate, and scale the layout live. Only events identified as coming from selected trackpads are blocked."))
+                        Text(L("app.ui.defaults_to_on_touch_drag_with_three_or_four_fingers_to_move_rotate_and_scale_the_layout_live_only_events_identified_as_coming_from_selected_trackpads_are_blocked"))
                             .font(.system(size: 11)).foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(.leading, 12)
                     .disabled(!model.experimentalCalibration)
                     VStack(alignment: .leading, spacing: 8) {
-                        Toggle(L("Keep Calibration Between Sessions"), isOn: $model.keepCalibrationOnReactivate)
+                        Toggle(L("app.ui.keep_calibration_between_sessions"), isOn: $model.keepCalibrationOnReactivate)
                             .toggleStyle(.switch).tint(mint)
-                        Text(L("Keep the last calibration when turning the keypad back on. Turn this off to start each session with the default layout. Applies to the next session."))
+                        Text(L("app.ui.keep_the_last_calibration_when_turning_the_keypad_back_on_turn_this_off_to_start_each_session_with_the_default_layout_applies_to_the_next_session"))
                             .font(.system(size: 11)).foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(.leading, 12)
                     .disabled(!model.experimentalCalibration)
                     VStack(alignment: .leading, spacing: 8) {
-                        Toggle(L("Enable Four-Finger Calibration"), isOn: $model.fourFingerCalibration)
+                        Toggle(L("app.ui.enable_four_finger_calibration"), isOn: $model.fourFingerCalibration)
                             .toggleStyle(.switch).tint(mint)
-                        Text(L("Place four fingers together. The middle two align with × and − from left to right, adjusting position, rotation, and scale to match their key centers."))
+                        Text(L("app.ui.place_four_fingers_together_the_middle_two_align_with_multiply_and_minus_from_left_to_right_adjusting_position_rotation_and_scale_to_match_their_key_centers"))
                             .font(.system(size: 12)).foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(12).background(.white.opacity(0.035), in: RoundedRectangle(cornerRadius: 10))
                     .disabled(!model.experimentalCalibration)
-                    Text(L("Calibration is saved separately for each trackpad and key arrangement. Turn calibration off to use the uncalibrated layout."))
+                    Text(L("app.ui.calibration_is_saved_separately_for_each_trackpad_and_key_arrangement_turn_calibration_off_to_use_the_uncalibrated_layout"))
                         .font(.system(size: 11)).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                     HStack(alignment: .top) {
                         Text(model.calibrationStatus).font(.system(size: 11)).foregroundStyle(.secondary)
                         Spacer()
-                        Button(L("Reset Calibration")) { model.resetCalibration() }.disabled(!model.hasCalibration)
+                        Button(L("app.ui.reset_calibration")) { model.resetCalibration() }.disabled(!model.hasCalibration)
                     }
                 }
                 .padding(20)

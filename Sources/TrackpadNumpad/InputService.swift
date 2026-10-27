@@ -11,6 +11,8 @@ struct TrackpadDevice: Identifiable, Equatable {
     let name: String
     let builtIn: Bool
 
+    var displayName: String { name.hasPrefix("app.ui.") ? L(name) : name }
+
     static func connected(refresh: Bool = false) -> [Self] {
         if refresh { _ = TPRefreshDevices() }
         return (0..<TPDeviceCount()).compactMap { index in
@@ -62,8 +64,14 @@ final class InputService {
     private var source: CFRunLoopSource?
     private var pointerFilter = DevicePointerFilter()
     private var senderCache: [UInt64: UInt64] = [:]
+    var blocksClicks = true {
+        didSet { pointerFilter.blocksClicks = blocksClicks }
+    }
     var selectedDeviceIDs: Set<UInt64> = [] {
-        didSet { senderCache.removeAll(); pointerFilter = DevicePointerFilter(selected: selectedDeviceIDs) }
+        didSet {
+            senderCache.removeAll()
+            pointerFilter = DevicePointerFilter(selected: selectedDeviceIDs, blocksClicks: blocksClicks)
+        }
     }
     var blocksSystemGestures = false
     var onEscape: (() -> Void)?
@@ -131,7 +139,9 @@ final class InputService {
                 }
                 let allow = service.pointerFilter.allows(kind, deviceID: deviceID,
                     pressure: event.getDoubleValueField(.mouseEventPressure))
-                if allow, case .down = kind { service.onPhysicalClick?(deviceID) }
+                if case .down = kind, event.getDoubleValueField(.mouseEventPressure) > 0 {
+                    service.onPhysicalClick?(deviceID)
+                }
                 return allow ? Unmanaged.passUnretained(event) : nil
             }, userInfo: Unmanaged.passUnretained(self).toOpaque()) else { return false }
         guard let runSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, port, 0) else {
@@ -169,7 +179,8 @@ final class InputService {
         if let tap { CGEvent.tapEnable(tap: tap, enable: false); CFMachPortInvalidate(tap) }
         if let source { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes) }
         tap = nil; source = nil
-        senderCache.removeAll(); pointerFilter = DevicePointerFilter(selected: selectedDeviceIDs)
+        senderCache.removeAll()
+        pointerFilter = DevicePointerFilter(selected: selectedDeviceIDs, blocksClicks: blocksClicks)
         blocksSystemGestures = false
     }
 
@@ -202,13 +213,13 @@ final class ActivationShortcut {
         guard started, !suspended else { return }
         guard let code = configuration.keyCode else { onProblem?(nil); return }
         if ShortcutAvailability.systemConflict(configuration) {
-            onProblem?(L("This shortcut is assigned in macOS Keyboard Shortcuts. Choose another combination."))
+            onProblem?(L("app.ui.this_shortcut_is_assigned_in_macos_keyboard_shortcuts_choose_another_combination"))
             return
         }
         let result = RegisterEventHotKey(UInt32(code), ShortcutAvailability.carbonModifiers(configuration),
             EventHotKeyID(signature: 0x4E506164, id: 1), GetApplicationEventTarget(),
             UInt32(kEventHotKeyExclusive), &hotKey)
-        onProblem?(result == noErr ? nil : L("This shortcut is unavailable or registered by another app. Choose another combination.") + " (\(result))")
+        onProblem?(result == noErr ? nil : L("app.ui.this_shortcut_is_unavailable_or_registered_by_another_app_choose_another_combination") + " (\(result))")
     }
 
     func refreshAvailability() {

@@ -17,10 +17,9 @@ final class LocalizationTests: XCTestCase {
 
     func testPackagedCatalogsHaveMatchingKeysAndTranslateAllLanguages() throws {
         func catalog(_ language: AppLanguage) throws -> [String: String] {
-            let url = try XCTUnwrap(Bundle.module.url(forResource: "Localizable", withExtension: "strings",
-                                                    subdirectory: "\(language.rawValue).lproj"))
+            let url = try XCTUnwrap(Bundle.module.url(forResource: language.rawValue, withExtension: "json"))
             let data = try Data(contentsOf: url)
-            return try XCTUnwrap(PropertyListSerialization.propertyList(from: data, format: nil) as? [String: String])
+            return try JSONDecoder().decode([String: String].self, from: data)
         }
         let english = try catalog(.english)
         XCTAssertFalse(english.isEmpty)
@@ -28,21 +27,25 @@ final class LocalizationTests: XCTestCase {
             let translated = try catalog(language)
             XCTAssertEqual(Set(english.keys), Set(translated.keys), "Key mismatch for \(language.rawValue)")
             for key in english.keys {
+                XCTAssertTrue(key.split(separator: ".").count >= 3, "Catalog ID must be dotted: \(key)")
                 XCTAssertEqual(AppLocalization.text(key), english[key])
                 XCTAssertEqual(AppLocalization.text(key, language: language), translated[key])
                 XCTAssertFalse(try XCTUnwrap(translated[key]).isEmpty, "Empty value for \(key) in \(language.rawValue)")
-                XCTAssertEqual(key.components(separatedBy: "%d").count,
-                               translated[key]?.components(separatedBy: "%d").count,
-                               "Format mismatch for \(key) in \(language.rawValue)")
+                for placeholder in ["%d", "%@"] {
+                    XCTAssertEqual(english[key]?.components(separatedBy: placeholder).count,
+                                   translated[key]?.components(separatedBy: placeholder).count,
+                                   "Format mismatch for \(key) in \(language.rawValue)")
+                }
             }
         }
-        XCTAssertEqual(AppLocalization.text("Settings…", language: .korean), "설정…")
-        XCTAssertEqual(AppLocalization.text("Settings…", language: .japanese), "設定…")
+        XCTAssertEqual(AppLocalization.text("app.ui.settings"), "Settings…")
+        XCTAssertEqual(AppLocalization.text("app.ui.settings", language: .korean), "설정…")
+        XCTAssertEqual(AppLocalization.text("app.ui.settings", language: .japanese), "設定…")
         XCTAssertEqual(AppLocalization.text("Unknown key", language: .korean), "Unknown key")
     }
 
     func testExistingStatusCanBeRenderedInEitherLanguageWithFingerCounts() {
-        let status = LocalizedMessage("Calibrating with %d fingers", count: 4)
+        let status = LocalizedMessage("app.ui.calibrating_with_count_fingers", count: 4)
         XCTAssertEqual(status.text(language: .english), "Calibrating with 4 fingers")
         XCTAssertEqual(status.text(language: .korean), "4손가락을 따라 보정 중")
         XCTAssertEqual(status.text(language: .japanese), "4本指でキャリブレーション中")

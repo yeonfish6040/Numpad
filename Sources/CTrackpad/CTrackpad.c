@@ -93,7 +93,7 @@ static int receiveFrame(void *sender, Contact *contacts, int count, double times
 static bool loadAPI(void) {
     if (createList) return true;
     if (!library) library = dlopen("/System/Library/PrivateFrameworks/MultitouchSupport.framework/MultitouchSupport", RTLD_NOW | RTLD_LOCAL);
-    if (!library) { errorMessage = "Could not load the MultitouchSupport framework."; return false; }
+    if (!library) { errorMessage = "app.ui.could_not_load_the_multitouchsupport_framework"; return false; }
     getDeviceID = dlsym(library, "MTDeviceGetDeviceID");
     isBuiltIn = dlsym(library, "MTDeviceIsBuiltIn");
     registerCallback = dlsym(library, "MTRegisterContactFrameCallback");
@@ -103,7 +103,7 @@ static bool loadAPI(void) {
     isRunning = dlsym(library, "MTDeviceIsRunning");
     CFArrayRef (*list)(void) = dlsym(library, "MTDeviceCreateList");
     if (!list || !getDeviceID || !isBuiltIn || !registerCallback || !unregisterCallback || !startDevice || !stopDevice || !isRunning) {
-        errorMessage = "The required trackpad API is unavailable on this version of macOS."; return false;
+        errorMessage = "app.ui.the_required_trackpad_api_is_unavailable_on_this_version_of_macos"; return false;
     }
     createList = list;
     return true;
@@ -156,7 +156,7 @@ int32_t TPRefreshDevices(void) {
         TPDeviceInfo info = {0};
         info.identifier = identifier;
         info.builtIn = isBuiltIn(device);
-        snprintf(info.name, sizeof(info.name), "%s", info.builtIn ? "Built-in Trackpad" : "External Trackpad");
+        snprintf(info.name, sizeof(info.name), "%s", info.builtIn ? "app.ui.built_in_trackpad" : "app.ui.external_trackpad");
         snprintf(info.persistentID, sizeof(info.persistentID), "%s:%llu", info.builtIn ? "builtin" : "device", (unsigned long long)identifier);
         io_iterator_t iterator = IO_OBJECT_NULL;
         if (IOServiceGetMatchingServices(kIOMainPortDefault, IOServiceMatching("AppleMultitouchDevice"), &iterator) == KERN_SUCCESS) {
@@ -180,7 +180,7 @@ int32_t TPRefreshDevices(void) {
         }
         devices[deviceCount] = device; infos[deviceCount++] = info;
     }
-    if (!deviceCount) errorMessage = "No trackpad found. Connect a trackpad and try again.";
+    if (!deviceCount) errorMessage = "app.ui.no_trackpad_found_connect_a_trackpad_and_try_again";
     return deviceCount;
 }
 
@@ -226,7 +226,7 @@ bool TPStartDevices(const uint64_t *identifiers, int32_t count, TPDeviceCallback
         startDevice(devices[i], 0);
         started++;
         if (!isRunning(devices[i])) {
-            errorMessage = "Could not start receiving trackpad touches. Check the connection and restart Numpad.";
+            errorMessage = "app.ui.could_not_start_receiving_trackpad_touches_check_the_connection_and_restart_numpad";
             TPStop(); return false;
         }
     }

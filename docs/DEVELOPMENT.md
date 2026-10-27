@@ -27,9 +27,9 @@ The default build targets the current Mac architecture and uses an ad hoc signat
 
 ## Localization
 
-English is the explicit initial language, even when macOS prefers Korean. The in-app **General → Language** picker persists `appLanguage` as `en` or `ko` and updates settings, menus, window titles, overlay hints, and stored status messages without a restart.
+English is the explicit initial language, even when macOS prefers another language. The in-app **General → Language** picker persists `appLanguage` as `en`, `ko`, or `ja` and updates settings, menus, window titles, overlay hints, and stored status messages without a restart.
 
-Editable catalogs live in `Sources/TrackpadCore/Resources/{en,ko}.lproj/Localizable.strings`. English source strings are the keys. Keep key sets and `%d` placeholders aligned. `LocalizedMessage` retains the source key and optional finger count so a previous calibration message can be displayed in either language. C bridge errors use English keys and are translated at the app boundary.
+Editable catalogs live in `Sources/TrackpadCore/Resources/{en,ko,ja}.json`. Use stable dotted IDs such as `app.ui.launch_at_login`; translated phrases are values, never lookup keys. Keep the ID sets and formatting placeholders (`%d`, `%@`) aligned across all catalogs. `LocalizedMessage` retains the ID and optional finger count so a previous calibration message can be displayed in any language. C bridge errors return the same IDs and are translated by the app.
 
 SwiftPM builds the resource bundle; the app build script copies it into `Contents/Resources`. Verify translations in the packaged executable:
 

@@ -54,7 +54,7 @@ By default, press <kbd>Right ⌘</kbd> + <kbd>Right ⌥</kbd>, tap a number, and
 
 On first launch, an interactive guide walks through permission, layout, the shortcut, and a safe typing practice. Reopen it anytime from **Getting Started…** in the menu bar. English, Korean, and Japanese can be selected inside the guide.
 
-> While the keypad is on, pointer movement, tap-to-click, scrolling, and gestures from selected trackpads are blocked when their source can be identified. Physical clicks and click-drag still work. Other trackpads and mice keep working normally. Opening Settings turns the keypad off.
+> While the keypad is on, pointer movement, tap-to-click, scrolling, and gestures from selected trackpads are blocked when their source can be identified. Physical clicks and click-drag are blocked by default; turn off **Block physical clicks** in General settings to allow them. Tap-to-click stays blocked. Other trackpads and mice keep working normally. Opening Settings turns the keypad off.
 
 ## Settle into your layout
 

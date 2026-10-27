@@ -18,7 +18,7 @@ struct StatusPill: View {
             } else {
                 PulseDot(color: .orange)
             }
-            Text(granted ? L("Access granted") : L("Waiting for access…"))
+            Text(granted ? L("app.ui.access_granted") : L("app.ui.waiting_for_access"))
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(granted ? mint : .white.opacity(0.75))
         }

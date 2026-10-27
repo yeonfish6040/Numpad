@@ -36,10 +36,10 @@ enum ShortcutAvailability {
     }
 
     static func problem(_ shortcut: TrackpadCore.KeyboardShortcut) -> String? {
-        guard shortcut.isValid else { return L("Use two modifier keys, or a key with Command, Option, or Control. Esc cancels.") }
-        if systemConflict(shortcut) { return L("This shortcut is assigned in macOS Keyboard Shortcuts. Choose another combination.") }
+        guard shortcut.isValid else { return L("app.ui.use_two_modifier_keys_or_a_key_with_command_option_or_control_esc_cancels") }
+        if systemConflict(shortcut) { return L("app.ui.this_shortcut_is_assigned_in_macos_keyboard_shortcuts_choose_another_combination") }
         let status = registrationError(shortcut)
-        if status != noErr { return L("This shortcut is unavailable or registered by another app. Choose another combination.") + " (\(status))" }
+        if status != noErr { return L("app.ui.this_shortcut_is_unavailable_or_registered_by_another_app_choose_another_combination") + " (\(status))" }
         return nil
     }
 }

@@ -229,7 +229,7 @@ struct OnboardingView: View {
         }
         .frame(width: 820, height: 580)
         .overlay(alignment: .topTrailing) {
-            Picker(L("Language"), selection: $app.language) {
+            Picker(L("app.ui.language"), selection: $app.language) {
                 ForEach(AppLanguage.allCases, id: \.self) { language in
                     Text(language.name).tag(language)
                 }
@@ -255,14 +255,14 @@ struct OnboardingView: View {
     @ViewBuilder private var footer: some View {
         switch model.step {
         case .welcome:
-            PrimaryButton(title: L("Get Started"), systemImage: "arrow.right") { model.next() }
+            PrimaryButton(title: L("app.ui.get_started"), systemImage: "arrow.right") { model.next() }
         case .done:
-            PrimaryButton(title: L("Start Using Numpad"), systemImage: "checkmark") { model.finish() }
+            PrimaryButton(title: L("app.ui.start_using_numpad"), systemImage: "checkmark") { model.finish() }
         default:
             HStack {
-                QuietButton(title: L("Back")) { model.back() }
+                QuietButton(title: L("app.ui.back")) { model.back() }
                 Spacer()
-                if skippable { QuietButton(title: L("Skip")) { model.next() }.padding(.trailing, 8) }
+                if skippable { QuietButton(title: L("app.ui.skip")) { model.next() }.padding(.trailing, 8) }
                 PrimaryButton(title: primaryTitle, systemImage: primaryImage, enabled: primaryEnabled) {
                     if model.step == .permission && !app.trusted { app.requestPermission() } else { model.next() }
                 }
@@ -279,7 +279,7 @@ struct OnboardingView: View {
         }
     }
     private var primaryTitle: String {
-        model.step == .permission && !app.trusted ? L("Open System Settings") : L("Continue")
+        model.step == .permission && !app.trusted ? L("app.ui.open_system_settings") : L("app.ui.continue")
     }
     private var primaryImage: String {
         model.step == .permission && !app.trusted ? "arrow.up.forward.app" : "arrow.right"
@@ -330,10 +330,10 @@ private struct WelcomeStep: View {
                 .frame(width: 440, height: 250)
                 .padding(.top, 8)
             VStack(spacing: 12) {
-                Text(L("Your trackpad, now a numpad."))
+                Text(L("app.ui.your_trackpad_now_a_numpad"))
                     .font(.system(size: 36, weight: .heavy, design: .rounded))
                     .foregroundStyle(LinearGradient(colors: [.white, mint], startPoint: .leading, endPoint: .trailing))
-                Text(L("Lives in your menu bar. One shortcut turns your trackpad\ninto a numeric keypad, right at your fingertips."))
+                Text(L("app.ui.lives_in_your_menu_bar_one_shortcut_turns_your_trackpad_into_a_numeric_keypad_right_at_your_fingertips"))
                     .font(.system(size: 15)).foregroundStyle(.white.opacity(0.6))
                     .multilineTextAlignment(.center).lineSpacing(4)
             }
@@ -396,14 +396,14 @@ private struct PermissionStep: View {
             SettingsIllustration(granted: trusted)
                 .frame(width: 300)
             VStack(alignment: .leading, spacing: 22) {
-                StepTitle(eyebrow: L("PERMISSION"), title: L("Allow Accessibility access"),
-                          subtitle: L("Numpad needs permission to hold the pointer still and send numbers to the app you are using. It does not read or save your input."),
+                StepTitle(eyebrow: L("app.ui.permission"), title: L("app.ui.allow_accessibility_access_2"),
+                          subtitle: L("app.ui.numpad_needs_permission_to_hold_the_pointer_still_and_send_numbers_to_the_app_you_are_using_it_does_not_read_or_save_your_input"),
                           alignment: .leading)
                 StatusPill(granted: trusted)
                 VStack(alignment: .leading, spacing: 10) {
-                    Instruction(number: 1, text: L("Click Open System Settings"))
-                    Instruction(number: 2, text: L("Enable Numpad in the list"))
-                    Instruction(number: 3, text: L("You will return here once access is granted"))
+                    Instruction(number: 1, text: L("app.ui.click_open_system_settings"))
+                    Instruction(number: 2, text: L("app.ui.enable_numpad_in_the_list"))
+                    Instruction(number: 3, text: L("app.ui.you_will_return_here_once_access_is_granted"))
                 }
             }
             .frame(width: 340, alignment: .leading)
@@ -436,7 +436,7 @@ private struct SettingsIllustration: View {
             HStack(spacing: 6) {
                 ForEach([Color.red, .yellow, .green], id: \.self) { Circle().fill($0.opacity(0.8)).frame(width: 9, height: 9) }
                 Spacer()
-                Text(L("Accessibility")).font(.system(size: 11, weight: .semibold)).foregroundStyle(.white.opacity(0.6))
+                Text(L("app.ui.accessibility")).font(.system(size: 11, weight: .semibold)).foregroundStyle(.white.opacity(0.6))
                 Spacer()
             }
             .padding(12)
@@ -496,11 +496,11 @@ private struct LayoutStep: View {
     @ObservedObject var app: AppController
     var body: some View {
         VStack(spacing: 32) {
-            StepTitle(eyebrow: L("LAYOUT"), title: L("Which side feels right?"),
-                      subtitle: L("Choose a side for ⌫ ÷ × − + ↵. You can change it in Settings anytime."))
+            StepTitle(eyebrow: L("app.ui.layout"), title: L("app.ui.which_side_feels_right"),
+                      subtitle: L("app.ui.choose_a_side_for_backspace_divide_multiply_minus_return_you_can_change_it_in_settings_anytime"))
             HStack(spacing: 22) {
-                LayoutCard(layout: .left, title: L("Left"), selected: app.controlSide == .left) { app.controlSide = .left }
-                LayoutCard(layout: .right, title: L("Right"), selected: app.controlSide == .right) { app.controlSide = .right }
+                LayoutCard(layout: .left, title: L("app.ui.left"), selected: app.controlSide == .left) { app.controlSide = .left }
+                LayoutCard(layout: .right, title: L("app.ui.right"), selected: app.controlSide == .right) { app.controlSide = .right }
             }
         }
     }
@@ -510,8 +510,8 @@ private struct ShortcutStep: View {
     @ObservedObject var model: OnboardingModel
     var body: some View {
         VStack(spacing: 40) {
-            StepTitle(eyebrow: L("SHORTCUT"), title: L("One shortcut, on or off"),
-                      subtitle: model.app.activationShortcut.isDefault ? L("Press Command ⌘ and Option ⌥ together on the right of the space bar.") : L("Press your activation shortcut."))
+            StepTitle(eyebrow: L("app.ui.shortcut"), title: L("app.ui.one_shortcut_on_or_off"),
+                      subtitle: model.app.activationShortcut.isDefault ? L("app.ui.press_command_command_and_option_option_together_on_the_right_of_the_space_bar") : L("app.ui.press_your_activation_shortcut"))
             if !model.app.activationShortcut.isDefault {
                 Text(model.app.shortcutTitle).font(.system(size: 36, weight: .semibold, design: .rounded))
                     .padding(24).background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
@@ -530,13 +530,13 @@ private struct ShortcutStep: View {
             }
             Group {
                 if model.shortcutDone {
-                    Label(L("Got it! You can now turn on the keypad in any app."), systemImage: "checkmark.circle.fill")
+                    Label(L("app.ui.got_it_you_can_now_turn_on_the_keypad_in_any_app"), systemImage: "checkmark.circle.fill")
                         .foregroundStyle(mint)
                 } else if model.app.activationShortcut.isDefault && (model.leftCommand || model.leftOption) {
-                    Label(L("Those are the left keys. Try the right ⌘ and ⌥ keys."), systemImage: "hand.point.right.fill")
+                    Label(L("app.ui.those_are_the_left_keys_try_the_right_command_and_option_keys"), systemImage: "hand.point.right.fill")
                         .foregroundStyle(.orange)
                 } else {
-                    Text(L("Use the same shortcut or press Esc to turn the keypad off.")).foregroundStyle(.white.opacity(0.45))
+                    Text(L("app.ui.use_the_same_shortcut_or_press_esc_to_turn_the_keypad_off")).foregroundStyle(.white.opacity(0.45))
                 }
             }
             .font(.system(size: 13, weight: .medium))
@@ -559,23 +559,23 @@ private struct PracticeStep: View {
                     .aspectRatio(PadGeometry.aspectRatio, contentMode: .fit)
                     .frame(width: 380)
                 if !model.practiceAvailable {
-                    Label(L("No trackpad found"), systemImage: "exclamationmark.triangle.fill")
+                    Label(L("app.ui.no_trackpad_found"), systemImage: "exclamationmark.triangle.fill")
                         .font(.system(size: 13, weight: .semibold))
                         .padding(.horizontal, 14).padding(.vertical, 9)
                         .background(.black.opacity(0.75), in: Capsule())
                 }
             }
             VStack(alignment: .leading, spacing: 24) {
-                StepTitle(eyebrow: L("PRACTICE"), title: model.practiceDone ? L("You have got it!") : L("Try it for yourself"),
-                          subtitle: String(format: L("Tap briefly with one finger to enter %@. Practice stays in this guide and never types into another app."), model.target),
+                StepTitle(eyebrow: L("app.ui.practice"), title: model.practiceDone ? L("app.ui.you_have_got_it") : L("app.ui.try_it_for_yourself"),
+                          subtitle: String(format: L("app.ui.tap_briefly_with_one_finger_to_enter_value_practice_stays_in_this_guide_and_never_types_into_another_app"), model.target),
                           alignment: .leading)
                 DigitDisplay(target: model.target, typed: model.typed, done: model.practiceDone)
                     .modifier(Shake(animatableData: CGFloat(model.mistakes)))
                     .animation(.linear(duration: 0.35), value: model.mistakes)
                 VStack(alignment: .leading, spacing: 8) {
-                    Tip(symbol: "delete.left", text: L("Tap ⌫ to delete a digit"))
-                    Tip(symbol: "hand.raised", text: L("Rest one finger to use it as an anchor"))
-                    Tip(symbol: "escape", text: L("Press Esc to skip this step"))
+                    Tip(symbol: "delete.left", text: L("app.ui.tap_backspace_to_delete_a_digit"))
+                    Tip(symbol: "hand.raised", text: L("app.ui.rest_one_finger_to_use_it_as_an_anchor"))
+                    Tip(symbol: "escape", text: L("app.ui.press_esc_to_skip_this_step"))
                 }
             }
             .frame(width: 300, alignment: .leading)
@@ -641,12 +641,12 @@ private struct DoneStep: View {
                     .frame(width: 40, height: 30)
             }
             .frame(height: 110)
-            StepTitle(eyebrow: L("ALL SET"), title: L("Numbers at your fingertips"),
-                      subtitle: L("Numpad is ready in your menu bar. Focus an input field and press the shortcut to start typing numbers."))
+            StepTitle(eyebrow: L("app.ui.all_set"), title: L("app.ui.numbers_at_your_fingertips"),
+                      subtitle: L("app.ui.numpad_is_ready_in_your_menu_bar_focus_an_input_field_and_press_the_shortcut_to_start_typing_numbers"))
             HStack(spacing: 14) {
-                SummaryCard(symbol: "command", title: shortcut, caption: L("Toggle on or off"))
-                SummaryCard(symbol: "escape", title: "Esc", caption: L("Turn off instantly"))
-                SummaryCard(symbol: "rectangle.grid.3x3", title: L("Menu bar"), caption: L("Settings and preview"))
+                SummaryCard(symbol: "command", title: shortcut, caption: L("app.ui.toggle_on_or_off"))
+                SummaryCard(symbol: "escape", title: "Esc", caption: L("app.ui.turn_off_instantly"))
+                SummaryCard(symbol: "rectangle.grid.3x3", title: L("app.ui.menu_bar"), caption: L("app.ui.settings_and_preview"))
             }
         }
         .overlay { ConfettiBurst() }

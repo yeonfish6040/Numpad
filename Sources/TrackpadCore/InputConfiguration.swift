@@ -130,9 +130,13 @@ public enum PointerEventKind {
 /// pointer. Two devices may hold the same button at the same time.
 public struct DevicePointerFilter {
     public var policy: DeviceInputPolicy
+    public var blocksClicks: Bool
     private var clicks: [UInt64: ClickFilter] = [:]
     private var calibration: [UInt64: ThreeFingerDragSuppression] = [:]
-    public init(selected: Set<UInt64> = []) { policy = DeviceInputPolicy(selected: selected) }
+    public init(selected: Set<UInt64> = [], blocksClicks: Bool = true) {
+        policy = DeviceInputPolicy(selected: selected)
+        self.blocksClicks = blocksClicks
+    }
     public mutating func updateTouches(deviceID: UInt64, count: Int, calibrationEnabled: Bool) {
         guard policy.shouldFilter(deviceID: deviceID) else { return }
         calibration[deviceID, default: ThreeFingerDragSuppression()].update(contactCount: count, enabled: calibrationEnabled)
@@ -143,7 +147,7 @@ public struct DevicePointerFilter {
         case .move, .scroll, .gesture: return false
         case .down(let button):
             return clicks[deviceID, default: ClickFilter()].down(button: button, pressure: pressure,
-                recentTrackpadTouch: true, forceSuppress: calibration[deviceID]?.active == true)
+                recentTrackpadTouch: true, forceSuppress: blocksClicks || calibration[deviceID]?.active == true)
         case .up(let button): return clicks[deviceID, default: ClickFilter()].up(button: button)
         case .drag(let button):
             return calibration[deviceID]?.active != true && clicks[deviceID, default: ClickFilter()].drag(button: button)
