@@ -168,3 +168,6 @@
 "This shortcut is assigned in macOS Keyboard Shortcuts. Choose another combination." = "This shortcut is assigned in macOS Keyboard Shortcuts. Choose another combination.";
 "This shortcut is unavailable or registered by another app. Choose another combination." = "This shortcut is unavailable or registered by another app. Choose another combination.";
 "macOS shortcuts and registered global shortcuts are checked. Some app-specific shortcuts and modifier-only shortcuts cannot be checked." = "macOS shortcuts and registered global shortcuts are checked. Some app-specific shortcuts and modifier-only shortcuts cannot be checked.";
+"Overlay Opacity" = "Overlay Opacity";
+"Show Overlay on All Displays" = "Show Overlay on All Displays";
+"When enabled, the overlay appears on every connected display. Only the primary overlay can be dragged." = "When enabled, the overlay appears on every connected display. Only the primary overlay can be dragged.";

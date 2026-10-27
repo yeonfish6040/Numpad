@@ -114,3 +114,6 @@
 "You have got it!" = "もう慣れましたね！";
 "You will return here once access is granted" = "許可されるとこの画面に戻ります";
 "Your trackpad, now a numpad." = "トラックパッドがテンキーに。";
+"Overlay Opacity" = "オーバーレイの不透明度";
+"Show Overlay on All Displays" = "すべてのディスプレイにオーバーレイを表示";
+"When enabled, the overlay appears on every connected display. Only the primary overlay can be dragged." = "オンにすると、接続されているすべてのディスプレイにオーバーレイを表示します。ドラッグできるのはメインのオーバーレイだけです。";

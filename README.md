@@ -66,7 +66,7 @@ Choose **Settings → Trackpads** to select which connected trackpads act as key
 
 Choose **Settings → General → Launch at Login** to start Numpad in the menu bar when you log in. It starts with the keypad off. If macOS requires approval, use **Open Login Items Settings** to allow it. Turn the switch off to remove the login item.
 
-Choose **Settings → General** to change the language. Drag the overlay to save its location, or use **Reset to Bottom Center** to start fresh.
+Choose **Settings → General** to change the language. Drag the overlay to save its location, or use **Reset to Bottom Center** to start fresh. Adjust its opacity or show passive mirrors on all displays from General settings.
 
 Choose **Settings → Haptics** to decide which interactions you want to feel.
 
@@ -132,6 +132,6 @@ Found a bug or have an idea? [Open an issue](https://github.com/yeonfish6040/Num
 
 ## License
 
-Numpad is source-available under the [Numpad Noncommercial Share-Alike License 1.0](LICENSE), a custom license. Noncommercial use, modification, redistribution, and pull requests are welcome. Commercial use requires separate written permission. If you redistribute the app or a modified version, you must provide the complete corresponding source code under the same license, retain notices, and identify your changes.
+Numpad is source-available under the [Numpad Noncommercial Share-Alike License 1.0](LICENSE), a custom license. You may use it during paid work, and contributions and pull requests are welcome. Selling or commercially offering the software or a derivative requires separate written permission. If you redistribute the app or a modified version, you must provide the complete corresponding source code under the same license, retain notices, and identify your changes.
 
-Because commercial use is restricted, this is not an OSI-approved open-source license. See [LICENSE](LICENSE) for the full terms.
+Because commercial distribution and monetization are restricted, this is not an OSI-approved open-source license. See [LICENSE](LICENSE) for the full terms.

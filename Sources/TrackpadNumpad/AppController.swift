@@ -19,6 +19,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
             settingsWindow?.title = L("Numpad Settings")
             onboardingWindow?.title = L("Welcome to Numpad")
             panel?.title = L("Numpad Overlay")
+            mirrorPanels.values.forEach { $0.title = L("Numpad Overlay") }
             if item != nil { updateMenu() }
         }
     }
@@ -158,8 +159,18 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
             if enabled { updateGuide() }
         }
     }
+    @Published var overlayOpacity = UserDefaults.standard.object(forKey: "overlayOpacity") as? Double ?? 1.0 {
+        didSet { UserDefaults.standard.set(overlayOpacity, forKey: "overlayOpacity") }
+    }
+    @Published var showOnAllDisplays = UserDefaults.standard.object(forKey: "showOnAllDisplays") as? Bool ?? false {
+        didSet {
+            UserDefaults.standard.set(showOnAllDisplays, forKey: "showOnAllDisplays")
+            if panel?.isVisible == true { updateGuide() }
+        }
+    }
     private var item: NSStatusItem!
     private var panel: NSPanel?
+    private var mirrorPanels: [UInt32: NSPanel] = [:]
     private var snapPanel: OverlayPanel?
     private var settingsWindow: NSWindow?
     private var onboardingWindow: NSWindow?
@@ -221,6 +232,10 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
             if let panel = self?.panel, panel.isVisible, panel.alphaValue > 0.01 {
                 panel.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.maximumWindow)))
                 panel.orderFrontRegardless()
+            }
+            self?.mirrorPanels.values.filter { $0.isVisible && $0.alphaValue > 0.01 }.forEach {
+                $0.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.maximumWindow)))
+                $0.orderFrontRegardless()
             }
         }
         sleepObserver = NSWorkspace.shared.notificationCenter.addObserver(
@@ -626,17 +641,76 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
             panel.animator().setFrame(target, display: true)
             panel.animator().alphaValue = 1
         }
+        updateMirrorPanels(excluding: screen)
+    }
+
+    private func updateMirrorPanels(excluding primaryScreen: NSScreen) {
+        let screens = showOnAllDisplays ? NSScreen.screens.filter {
+            displayID(for: $0) != displayID(for: primaryScreen)
+        } : []
+        let activeIDs = Set(screens.map { displayID(for: $0) })
+        for id in Array(mirrorPanels.keys) where !activeIDs.contains(id) {
+            mirrorPanels[id]?.orderOut(nil)
+            mirrorPanels.removeValue(forKey: id)
+        }
+
+        for screen in screens {
+            let id = displayID(for: screen)
+            let mirror: NSPanel
+            if let existing = mirrorPanels[id] {
+                mirror = existing
+            } else {
+                let created = OverlayPanel(contentRect: NSRect(x: 0, y: 0, width: 540, height: 360),
+                    styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+                created.title = L("Numpad Overlay")
+                created.contentView = NSHostingView(rootView: GuideView(model: self))
+                created.isOpaque = false; created.backgroundColor = .clear
+                created.hasShadow = true
+                created.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.maximumWindow)))
+                created.ignoresMouseEvents = true
+                created.hidesOnDeactivate = false
+                created.becomesKeyOnlyIfNeeded = true
+                created.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+                mirrorPanels[id] = created
+                mirror = created
+            }
+            let size = OverlayPlacement.clamp(
+                CGRect(origin: .zero, size: CGSize(width: 540, height: 360)), to: screen.visibleFrame).size
+            let target = OverlayPlacement.place(size: size, preferredOrigin: nil,
+                on: screen.visibleFrame, avoiding: nil, caret: nil)
+            let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+            if !mirror.isVisible {
+                mirror.alphaValue = reduceMotion ? 1 : 0
+                mirror.setFrame(reduceMotion ? target : target.offsetBy(dx: 0, dy: -6), display: true)
+                mirror.orderFrontRegardless()
+            }
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = reduceMotion ? 0 : 0.18
+                context.timingFunction = CAMediaTimingFunction(controlPoints: 0.2, 0.8, 0.2, 1)
+                mirror.animator().setFrame(target, display: true)
+                mirror.animator().alphaValue = 1
+            }
+        }
+    }
+
+    private func displayID(for screen: NSScreen) -> UInt32 {
+        (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value ?? 0
     }
 
     private func hideOverlay() {
-        guard let panel, panel.isVisible else { return }
+        guard panel?.isVisible == true || mirrorPanels.values.contains(where: \.isVisible) else { return }
         let revision = previewRevision
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? 0 : 0.10
-            panel.animator().alphaValue = 0
-        } completionHandler: { [weak self] in
-            guard let self, (!self.enabled || !self.showGuide), self.previewRevision == revision else { return }
-            panel.orderOut(nil)
+        let duration = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? 0.0 : 0.10
+        let visiblePanels = ([panel].compactMap { $0 } + Array(mirrorPanels.values)).filter(\.isVisible)
+        for overlay in visiblePanels {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = duration
+                overlay.animator().alphaValue = 0
+            } completionHandler: { [weak self, weak overlay] in
+                guard let self, let overlay,
+                      (!self.enabled || !self.showGuide), self.previewRevision == revision else { return }
+                overlay.orderOut(nil)
+            }
         }
     }
 
