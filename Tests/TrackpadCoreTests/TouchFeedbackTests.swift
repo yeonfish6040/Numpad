@@ -5,6 +5,23 @@ final class TouchFeedbackTests: XCTestCase {
     private let anchor = Touch(id: 1, x: 0.3, y: 0.625)
     private let seven = Touch(id: 2, x: 0.1, y: 0.875)
 
+    func testLargerCenterRegionExpandsEntryAndExitWithHysteresis() {
+        var original = CenterCrossingFeedback()
+        var enlarged = CenterCrossingFeedback(radiusScale: 2)
+        let outside = Touch(id: 7, x: 0.34, y: 0.625)
+        let entry = Touch(id: 7, x: 0.31, y: 0.625)
+        _ = original.processEvents([outside])
+        _ = enlarged.processEvents([outside])
+        XCTAssertTrue(original.processEvents([entry]).isEmpty)
+        XCTAssertEqual(enlarged.processEvents([entry]), .entered)
+        // Beyond the entry radius but within the exit radius: no extra pulse.
+        XCTAssertTrue(enlarged.processEvents([Touch(id: 7, x: 0.32, y: 0.625)]).isEmpty)
+        XCTAssertEqual(enlarged.processEvents([Touch(id: 7, x: 0.324, y: 0.625)]), .exited)
+        // A new contact landing in the expanded region must still not pulse.
+        _ = enlarged.processEvents([])
+        XCTAssertTrue(enlarged.processEvents([entry]).isEmpty)
+    }
+
     func testCenterEntryAndExitAreReportedSeparately() {
         var feedback = CenterCrossingFeedback()
         let outside = Touch(id: 7, x: 0.4, y: 0.625)

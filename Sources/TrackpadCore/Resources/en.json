@@ -1,6 +1,9 @@
 {
   "app.settings.block_physical_clicks": "Block physical clicks",
   "app.settings.block_physical_clicks_help": "When enabled, physical clicks and click-drag from selected trackpads are blocked. Tap-to-click remains blocked while the keypad is active.",
+  "app.settings.center_region_size": "Center region size",
+  "app.settings.center_region_size_help": "100% is the original size. Increasing this expands both the entry and exit boundaries.",
+  "app.settings.reset_center_region_size": "Reset",
   "app.ui.a_stronger_haptic_marks_the_small_center_region": "A stronger haptic marks the small center region.",
   "app.ui.access_granted": "Access granted",
   "app.ui.accessibility": "Accessibility",

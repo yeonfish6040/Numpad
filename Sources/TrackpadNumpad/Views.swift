@@ -286,6 +286,25 @@ struct SettingsView: View {
                 Toggle(L("app.ui.when_a_tap_is_confirmed_on_release"), isOn: $model.hapticInputConfirmed)
                 Divider()
                 Text(L("app.ui.center_guide_for_5")).font(.headline)
+                HStack {
+                    Text(L("app.settings.center_region_size"))
+                    Spacer()
+                    Text("\(Int((model.centerRegionScale * 100).rounded()))%")
+                        .monospacedDigit().foregroundStyle(.secondary)
+                    Button(L("app.settings.reset_center_region_size")) { model.centerRegionScale = 1 }
+                }
+                HStack(spacing: 16) {
+                    Slider(value: $model.centerRegionScale, in: 0.5...5, step: 0.1)
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8).fill(.white.opacity(0.06))
+                        Text("5").font(.caption).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading).padding(6)
+                        Ellipse().fill(mint.opacity(0.25)).overlay(Ellipse().strokeBorder(mint, lineWidth: 1))
+                            .frame(width: 100 * 0.07 * model.centerRegionScale, height: 50 * 0.07 * model.centerRegionScale)
+                    }.frame(width: 100, height: 50)
+                    .accessibilityHidden(true)
+                }
+                Text(L("app.settings.center_region_size_help"))
+                    .font(.system(size: 11)).foregroundStyle(.secondary)
                 Toggle(L("app.ui.when_entering_the_center"), isOn: $model.hapticFiveEnter)
                 Toggle(L("app.ui.when_leaving_the_center"), isOn: $model.hapticFiveExit)
                 Text(L("app.ui.a_stronger_haptic_marks_the_small_center_region"))

@@ -178,6 +178,13 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
     @Published var hapticInputConfirmed = UserDefaults.standard.object(forKey: "hapticInputConfirmed") as? Bool ?? true {
         didSet { UserDefaults.standard.set(hapticInputConfirmed, forKey: "hapticInputConfirmed") }
     }
+    @Published var centerRegionScale = min(5, max(0.5, UserDefaults.standard.object(forKey: "centerRegionScale") as? Double ?? 1)) {
+        didSet {
+            UserDefaults.standard.set(centerRegionScale, forKey: "centerRegionScale")
+            disable()
+            resetInputState()
+        }
+    }
     @Published var hapticFiveEnter = UserDefaults.standard.object(forKey: "hapticFiveEnter") as? Bool ?? true {
         didSet { UserDefaults.standard.set(hapticFiveEnter, forKey: "hapticFiveEnter") }
     }
@@ -488,7 +495,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         calibrationTracking = false; calibrationBaseline = nil
         recognizer = AnchoredTapRecognizer(layout: controlSide, keys: keypadKeys)
         recognizer.reset(waitForLift: !touches.isEmpty)
-        centerFeedback = CenterCrossingFeedback(layout: controlSide, keys: keypadKeys)
+        centerFeedback = CenterCrossingFeedback(layout: controlSide, keys: keypadKeys, radiusScale: centerRegionScale)
         calibrationGesture.reset(waitForLift: !touches.isEmpty)
         clearKeyHighlight()
     }

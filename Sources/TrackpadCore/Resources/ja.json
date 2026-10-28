@@ -1,6 +1,9 @@
 {
   "app.settings.block_physical_clicks": "物理クリックをブロック",
   "app.settings.block_physical_clicks_help": "オンにすると、選択したトラックパッドの物理クリックとクリックドラッグをブロックします。タップでのクリックはキーパッド使用中、常にブロックされます。",
+  "app.settings.center_region_size": "中心領域のサイズ",
+  "app.settings.center_region_size_help": "100%が元のサイズです。大きくすると、進入と退出の判定範囲が両方広がります。",
+  "app.settings.reset_center_region_size": "リセット",
   "app.ui.a_stronger_haptic_marks_the_small_center_region": "中心の小さな領域を通過すると強めの触覚フィードバックがあります。",
   "app.ui.access_granted": "許可済み",
   "app.ui.accessibility": "アクセシビリティ",

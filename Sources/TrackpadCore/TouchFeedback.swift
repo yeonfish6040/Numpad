@@ -33,7 +33,11 @@ public struct CenterCrossingEvents: OptionSet {
 public struct CenterCrossingFeedback {
     private var contacts: [Int32: Bool] = [:]
     private let region: FiveRegion
-    public init(layout: KeypadLayout = .right, keys: [PadKey]? = nil) { region = FiveRegion(layout: layout, keys: keys) }
+    private let radiusScale: Double
+    public init(layout: KeypadLayout = .right, keys: [PadKey]? = nil, radiusScale: Double = 1) {
+        region = FiveRegion(layout: layout, keys: keys)
+        self.radiusScale = radiusScale.isFinite ? min(5, max(0.5, radiusScale)) : 1
+    }
     public mutating func reset() { contacts.removeAll() }
 
     public mutating func process(_ touches: [Touch]) -> Bool {
@@ -46,12 +50,12 @@ public struct CenterCrossingFeedback {
         for touch in touches where touch.x.isFinite && touch.y.isFinite {
             let distance = region.distance(touch)
             if let wasInside = contacts[touch.id] {
-                let inside = wasInside ? distance < 0.055 : distance <= 0.035
+                let inside = wasInside ? distance < 0.055 * radiusScale : distance <= 0.035 * radiusScale
                 if inside != wasInside { events.insert(inside ? .entered : .exited) }
                 next[touch.id] = inside
             } else {
                 // Landing directly on 5 is a tap, not a crossing.
-                next[touch.id] = distance <= 0.035
+                next[touch.id] = distance <= 0.035 * radiusScale
             }
         }
         contacts = next
